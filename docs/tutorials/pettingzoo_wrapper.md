@@ -3,6 +3,7 @@
 This tutorial provides a simple example to demonstrate how to use a ChatArena environment with [PettingZoo](https://github.com/Farama-Foundation/PettingZoo).
 
 1. **Load the environment**
+
 ```python
 from chatarena.arena import Arena
 
@@ -10,6 +11,7 @@ arena = Arena.from_config("examples/pettingzoo_env_example.json")
 ```
 
 2. **Wrap the environment**
+
 ```python
 from chatarena.pettingzoo_compatibility import PettingZooCompatibilityV0
 env = PettingZooCompatibilityV0(env=arena, render_mode="human", max_turns=5)
@@ -20,6 +22,7 @@ print("ACT SPACE: ", env.action_space(env.agent_selection))
 ```
 
 3. **Run the environment**
+
 ```python
 agent_player_mapping = {agent: player_obj
                         for agent in env.possible_agents

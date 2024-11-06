@@ -71,6 +71,7 @@ export OPENAI_API_KEY="your_api_key_here"
 
 By default `pip install chatarena` will only install dependencies necessary for ChatArena's core functionalities.
 You can install optional dependencies with the following commands:
+
 ```bash
 pip install chatarena[all_backends] # install dependencies for all supported backends: anthropic, cohere, huggingface, etc.
 pip install chatarena[all_envs]     # install dependencies for all environments, such as pettingzoo
@@ -96,12 +97,14 @@ This will launch a demo server for ChatArena, and you can access it from your br
 
 [//]: # (![webui screenshot]&#40;docs/images/webui.png&#41;)
 
-Check out this video to learn how to use Web UI: [![Webui demo video](https://img.shields.io/badge/WebUI%20Demo%20Video-Vimeo-blue?logo=vimeo)](https://vimeo.com/816979419)
+Check out this video to learn how to use Web
+UI: [![Webui demo video](https://img.shields.io/badge/WebUI%20Demo%20Video-Vimeo-blue?logo=vimeo)](https://vimeo.com/816979419)
 
 ## For Developers
 
 For an introduction to the ChatArena framework, please refer to [this document](docs/devdoc/design.md).
-For a walkthrough of building a new environment, check [![Open In Colab](https://img.shields.io/badge/Colab-Open%20Notebook-blue?logo=google-colab)](https://colab.research.google.com/drive/1vKaskNMBtuGOVgn8fQxMgjCevn2wp1Ml?authuser=0#scrollTo=P5DCC0Y0Zbxi)
+For a walkthrough of building a new environment,
+check [![Open In Colab](https://img.shields.io/badge/Colab-Open%20Notebook-blue?logo=google-colab)](https://colab.research.google.com/drive/1vKaskNMBtuGOVgn8fQxMgjCevn2wp1Ml?authuser=0#scrollTo=P5DCC0Y0Zbxi)
 
 Here we provide a compact guide on minimal setup to run the game and some general advice on customization.
 
@@ -123,7 +126,7 @@ Load `Arena` from a config file -- here we use `examples/nlp-classroom-3players.
 
 ```python
 arena = Arena.from_config("examples/nlp-classroom-3players.json")
-arena.run(num_steps=10)
+arena.run(num_steps = 10)
 ```
 
 Run the game in an interactive CLI interface:

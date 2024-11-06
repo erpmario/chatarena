@@ -52,11 +52,11 @@ for _ in range(10):
 You can easily save your gameplay history to file:
 
 ```python
-arena.save_history(path=...)
+arena.save_history(path = ...)
 ```
 
 and save your game config to file:
 
 ```python
-arena.save_config(path=...)
+arena.save_config(path = ...)
 ```

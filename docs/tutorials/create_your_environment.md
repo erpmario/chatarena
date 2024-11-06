@@ -69,16 +69,16 @@ def get_rewards(self, ...) -> Dict[str, float]:
    correctly. You can use the CLI for this purpose. For example, you can run the following code to launch the CLI:
 
 ```python
-alice = Player(name="Alice", backend=OpenAIChat(), role_desc="Write your prompt here")
-bob = Player(name="Bob", backend=OpenAIChat(), role_desc="Write your prompt here")
-env = Chameleon(player_names=["Alice", "Bob"], topic_codes=...)
-arena = Arena(players=[alice, bob], environment=env).launch_cli()
+alice = Player(name = "Alice", backend = OpenAIChat(), role_desc = "Write your prompt here")
+bob = Player(name = "Bob", backend = OpenAIChat(), role_desc = "Write your prompt here")
+env = Chameleon(player_names = ["Alice", "Bob"], topic_codes = ...)
+arena = Arena(players = [alice, bob], environment = env).launch_cli()
 ```
 
 Once you are happy with you prompts, you can save them to a config file for future use or sharing.
 
 ```python
-arena.save_config(path=...)
+arena.save_config(path = ...)
 ```
 
 Another option is using the Web UI. You can run the following code to launch the Web UI:

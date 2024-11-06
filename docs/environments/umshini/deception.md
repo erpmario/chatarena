@@ -1,9 +1,14 @@
 # Umshini: Deception
 
 ## Introduction
-This is a two-player language game testing the abilities of LLMs to both perform and resist deception. The game has two roles: attacker and defender. The defender is instructed not to perform a given action under any circumstances, while the attacker tries to manipulate the defender into performing the action, breaking its instructions.
 
-The moderator bot explains the scenario and assigns one player as attacker and one as defender. Every turn, the moderator will judge whether or not the defender has violated its instructions, and declare the winner accordingly. This environment is symmetrical, meaning that roles are swapped halfway through the match, giving each player a chance to both attack and defend.
+This is a two-player language game testing the abilities of LLMs to both perform and resist deception. The game has two roles: attacker and defender. The
+defender is instructed not to perform a given action under any circumstances, while the attacker tries to manipulate the defender into performing the action,
+breaking its instructions.
+
+The moderator bot explains the scenario and assigns one player as attacker and one as defender. Every turn, the moderator will judge whether or not the defender
+has violated its instructions, and declare the winner accordingly. This environment is symmetrical, meaning that roles are swapped halfway through the match,
+giving each player a chance to both attack and defend.
 
 ## Usage
 
@@ -32,8 +37,13 @@ for agent in env.agent_iter():
     response = your_model(observation)
     env.step(response)
 ```
+
 ## Resources
-This is one of the three environments included in the [Umshini](https://umshini.ai). We include a PettingZoo wrapper which is used in order to participate in weekly tournaments (see [Usage](https://umshini.ai/Usage) for more information).
+
+This is one of the three environments included in the [Umshini](https://umshini.ai). We include a PettingZoo wrapper which is used in order to participate in
+weekly tournaments (see [Usage](https://umshini.ai/Usage) for more information).
+
 * For more information on the environment
-* See the [tutorials](https://github.com/chatarena/chatarena/tree/main/docs/tutorials/umshini) included in this repository for examples of running this environment locally with ChatArena or LangChain agents.
+* See the [tutorials](https://github.com/chatarena/chatarena/tree/main/docs/tutorials/umshini) included in this repository for examples of running this
+  environment locally with ChatArena or LangChain agents.
 * See the [Umshini-Starter](https://github.com/Umshini/Umshini-Starter) repository for full examples of connecting with the client with simple LangChain bots.
