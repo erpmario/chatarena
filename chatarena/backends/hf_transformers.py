@@ -1,12 +1,15 @@
 import os
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
-from typing import List
+from typing import List, Dict
 
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from ..message import SYSTEM_NAME as SYSTEM
 from ..message import Message
 from .base import IntelligenceBackend, register_backend
+
+
+DEFAULT_MODEL = "HuggingFaceTB/SmolLM2-1.7B-Instruct"
 
 
 @contextmanager
@@ -22,14 +25,73 @@ with suppress_stdout_stderr():
 	try:
 		import transformers
 		from transformers import pipeline
-		from transformers.pipelines.conversational import (
-			Conversation,
-			ConversationalPipeline,
-		)
+		# from transformers.pipelines.conversational import (
+		# 	Conversation,
+		# 	ConversationalPipeline,
+		# )
+		from transformers.pipelines.text_generation import TextGenerationPipeline
 	except ImportError:
 		is_transformers_available = False
 	else:
 		is_transformers_available = True
+
+
+@register_backend
+class TransformersTextGeneration(IntelligenceBackend):
+	"""Interface to the Transformers TextGenerationPipeline."""
+	
+	stateful = False
+	type_name = "transformers:text-generation"
+	
+	
+	def __init__(self, model: str = DEFAULT_MODEL, device: int = -1, **kwargs):
+		super().__init__(model = model, device = device, **kwargs)
+		self.model = model
+		self.device = device
+		
+		assert is_transformers_available, "Transformers package is not installed"
+		self.generator = pipeline(
+			task = "text-generation", model = self.model, device = self.device
+		)
+	
+	
+	@retry(stop = stop_after_attempt(6), wait = wait_random_exponential(min = 1, max = 60))
+	def _get_response(self, chat: List[Dict[str, str]]) -> List[Dict[str, str]]:
+		response = self.generator(chat, num_return_sequences = 1, max_new_tokens = 300)
+		return response[0]['generated_text']
+	
+	
+	@staticmethod
+	def _msg_template(agent_name, content):
+		return {"role": agent_name, "content": content}
+	
+	
+	def query(
+		self,
+		agent_name: str,
+		role_desc: str,
+		history_messages: List[Message],
+		global_prompt: str = None,
+		request_msg: Message = None,
+		*args,
+		**kwargs,
+	) -> str:
+		chat = []
+		
+		if global_prompt:
+			chat.append(self._msg_template(SYSTEM, global_prompt))
+		chat.append(self._msg_template(SYSTEM, role_desc))
+		
+		for msg in history_messages:
+			chat.append(self._msg_template(msg.agent_name, msg.content))
+		if request_msg:
+			chat.append(self._msg_template(SYSTEM, request_msg.content))
+		
+		# Get the response
+		responseHistory = self._get_response(chat)
+		responseDict = responseHistory[-1]
+		response = responseDict["content"]
+		return response
 
 
 @register_backend
@@ -40,7 +102,7 @@ class TransformersConversational(IntelligenceBackend):
 	type_name = "transformers:conversational"
 	
 	
-	def __init__(self, model: str, device: int = -1, **kwargs):
+	def __init__(self, model: str = DEFAULT_MODEL, device: int = -1, **kwargs):
 		super().__init__(model = model, device = device, **kwargs)
 		self.model = model
 		self.device = device
