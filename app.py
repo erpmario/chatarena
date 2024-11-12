@@ -32,7 +32,7 @@ css = """#col-container {max-width: 90%; margin-left: auto; margin-right: auto; 
 
 DEBUG = True
 
-DEFAULT_BACKEND = "openai-chat"
+DEFAULT_BACKEND = "transformers:text-generation"
 DEFAULT_ENV = "conversation"
 MAX_NUM_PLAYERS = 6
 DEFAULT_NUM_PLAYERS = 2
@@ -119,7 +119,7 @@ def get_player_components(name, visible):
 	with gr.Row():
 		with gr.Column():
 			role_name = gr.Textbox(
-				line = 1,
+				lines = 1,
 				show_label = False,
 				interactive = True,
 				visible = visible,
@@ -434,7 +434,7 @@ Prompting multiple AI agents to play games in a language-driven environment.
 			
 			chatbot_output = _convert_to_chatbot_output(all_messages, display_recv = True)
 			update_dict = {
-				human_input_textbox: gr.Textbox.update(value = ""),
+				human_input_textbox: gr.Textbox(value = ""),
 				chatbot: chatbot_output,
 				btn_step: gr.update(
 					value = "Next Step", interactive = not timestep.terminal

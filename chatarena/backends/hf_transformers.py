@@ -2,6 +2,7 @@ import os
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from typing import List, Dict
 
+import torch
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from ..message import SYSTEM_NAME as SYSTEM
@@ -9,7 +10,8 @@ from ..message import Message
 from .base import IntelligenceBackend, register_backend
 
 
-DEFAULT_MODEL = "HuggingFaceTB/SmolLM2-1.7B-Instruct"
+DEFAULT_MODEL = "HuggingFaceTB/SmolLM2-360M-Instruct"
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 @contextmanager
@@ -44,7 +46,7 @@ class TransformersTextGeneration(IntelligenceBackend):
 	type_name = "transformers:text-generation"
 	
 	
-	def __init__(self, model: str = DEFAULT_MODEL, device: int = -1, **kwargs):
+	def __init__(self, model: str = DEFAULT_MODEL, device: int = DEVICE, **kwargs):
 		super().__init__(model = model, device = device, **kwargs)
 		self.model = model
 		self.device = device
@@ -56,8 +58,8 @@ class TransformersTextGeneration(IntelligenceBackend):
 	
 	
 	@retry(stop = stop_after_attempt(6), wait = wait_random_exponential(min = 1, max = 60))
-	def _get_response(self, chat: List[Dict[str, str]]) -> List[Dict[str, str]]:
-		response = self.generator(chat, num_return_sequences = 1, max_new_tokens = 300)
+	def _get_response(self, chat: List[Dict[str, str]]) -> str:
+		response = self.generator(chat, num_return_sequences = 1, max_new_tokens = 300, return_full_text = False)
 		return response[0]['generated_text']
 	
 	
@@ -88,9 +90,9 @@ class TransformersTextGeneration(IntelligenceBackend):
 			chat.append(self._msg_template(SYSTEM, request_msg.content))
 		
 		# Get the response
-		responseHistory = self._get_response(chat)
-		responseDict = responseHistory[-1]
-		response = responseDict["content"]
+		response = self._get_response(chat)
+		# responseDict = responseHistory[-1]
+		# response = responseDict["content"]
 		return response
 
 
