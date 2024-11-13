@@ -64,7 +64,7 @@ class TransformersTextGeneration(IntelligenceBackend):
 	
 	
 	@staticmethod
-	def _msg_template(agent_name, content):
+	def _msg_template(agent_name: str, content: str):
 		return {"role": agent_name, "content": content}
 	
 	

@@ -1,0 +1,39 @@
+{
+  "name": "Diplomatic Space Race",
+  "global_prompt": "You are participating in a simulation of a diplomatic turn-based strategy game. This game involves several different nations aiming to gather resources, expand, and develop economically. In this simulation, the world has already reached the space age, and technology has advanced to the point where space travel is possible.\n\nThe nations of the world have discovered a resource-rich moon in the outer reaches of the solar system. They have agreed to a plan to pool together resources to construct a spaceship that will be used in launching an expedition to the moon.\n\nThe choices available to each nation are as follows:\nVolunteer (V): Contribute a portion of your nation's resources to the project.\nIgnore (I): Keep your nation's resources for yourself.\n\nAt least half of the nations must decide to Volunteer for the project to be successful.\n\nIf the project succeeds, the spaceship will be constructed, and all nations will be able to participate in the expedition.\nIf the project fails, the spaceship will not be constructed, and no nations will be able to participate in the expedition.\nThere is no benefit to having more than the required number of nations contribute to the project.\n\nPlayers will interact in the game by choosing Volunteer or Ignore. The game's host will decide the project's outcome based on the nations' choices. Only the host can determine the final outcome. Nations should not declare the results on their own.",
+  "environment": {
+    "env_type": "moderated_conversation",
+    "parallel": true,
+    "moderator": {
+      "role_desc": "You are the system for the Diplomatic Space Race game.\n\nYour task is to record the players' choices and output each player's decision.\n\nFor example, when a previous player says, \"A: Volunteer,\"\nthis means A chooses to contribute a portion of their nation's resources to the project.\nYou would output:\n\n```\nNation 1 (A) choice: Volunteer\nNation 2 (B) choice: Unknown\n```\nIn the next step, if another player says, \"B: Ignore,\"\nthis means B refuses to contribute their nation's resources to the project.\nYou would output:\n\n```\nNation 1 (A) choice: Volunteer\nNation 2 (B) choice: Ignore\n```\n## Termination conditions\nDetermine the project's fate based on the nations' choices.\n\nIf both nations choose to Ignore, the project fails and no reward is given.\nIf one nation chooses to Volunteer and the other chooses to Ignore, the project succeeds. The Volunteering nation loses 200 resource units. Both nations are given access to the spaceship.\nIf both nations choose to Volunteer, the project succeeds. Both nations lose 200 resource units. Both nations are given access to the spaceship.\nYou should announce the game results after displaying the players' choices.\n\nGiven the previous example, you would output the following:\n```\nNation 1 (A) choice: Volunteer\nNation 2 (B) choice: Ignore\nResult: The project succeeds!\nSince the project succeeded, A and B are given access to the spaceship. Since A Volunteered, A loses 200 resource units. The game is over.\n```\n## Other instructions\nDo not write code.\nDo not instruct the players to do anything.\nDo not output \"host.\"",
+      "terminal_condition": "Has the game ended? Answer yes or no.",
+      "backend": {
+        "backend_type": "transformers:text-generation",
+        "temperature": 0.0,
+        "max_tokens": 100
+      }
+    },
+    "moderator_visibility": "Moderator",
+    "moderator_period": "turn"
+  },
+  "players": [
+    {
+      "name": "Player 1",
+      "role_desc": "You play as Nation A. You possess 1000 resource units.\n\nYour task is to choose to contribute 200 resource units to the project (Volunteer) or refuse to do so (Ignore). For example, you could output: \"A: Volunteer\" or \"A: Ignore.\"\n\nThe choice you make must be consistent with the game rules.\n\nYou should not play as the host.\nDo not output the \"host\" and the choices of other players.\nDo not say anything else except for your decision.",
+      "backend": {
+        "backend_type": "transformers:text-generation",
+        "temperature": 0.7,
+        "max_tokens": 20
+      }
+    },
+    {
+      "name": "Player 2",
+      "role_desc": "You play as Nation B. You possess 1000 resource units.\n\nYour task is to choose to contribute 200 resource units to the project (Volunteer) or refuse to do so (Ignore). For example, you could output: \"B: Volunteer\" or \"B: Ignore.\"\n\nThe choice you make must be consistent with the game rules.\n\nYou should not play as the host.\nDo not output the \"host\" and the choices of other players.\nDo not say anything else except for your decision.",
+      "backend": {
+        "backend_type": "transformers:text-generation",
+        "temperature": 0.7,
+        "max_tokens": 20
+      }
+    }
+  ]
+}
