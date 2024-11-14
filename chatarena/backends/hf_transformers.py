@@ -10,8 +10,9 @@ from ..message import Message
 from .base import IntelligenceBackend, register_backend
 
 
-DEFAULT_MODEL = "HuggingFaceTB/SmolLM2-360M-Instruct"
+DEFAULT_MODEL = "HuggingFaceTB/SmolLM2-1.7B-Instruct"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+SINGLETON_MODE = True
 
 
 @contextmanager
@@ -44,6 +45,7 @@ class TransformersTextGeneration(IntelligenceBackend):
 	
 	stateful = False
 	type_name = "transformers:text-generation"
+	generator = None
 	
 	
 	def __init__(self, model: str = DEFAULT_MODEL, device: int = DEVICE, **kwargs):
@@ -52,9 +54,19 @@ class TransformersTextGeneration(IntelligenceBackend):
 		self.device = device
 		
 		assert is_transformers_available, "Transformers package is not installed"
-		self.generator = pipeline(
-			task = "text-generation", model = self.model, device = self.device
-		)
+		# If backend is in singleton mode, only create the generator once.
+		if SINGLETON_MODE:
+			if TransformersTextGeneration.generator is None:
+				print(f"Creating generator for model: {model}")
+				TransformersTextGeneration.generator = pipeline(
+					task = "text-generation", model = self.model, device = self.device
+				)
+			self.generator = TransformersTextGeneration.generator
+		else:
+			print(f"Creating generator for model: {model}")
+			self.generator = pipeline(
+				task = "text-generation", model = self.model, device = self.device
+			)
 	
 	
 	@retry(stop = stop_after_attempt(6), wait = wait_random_exponential(min = 1, max = 60))
