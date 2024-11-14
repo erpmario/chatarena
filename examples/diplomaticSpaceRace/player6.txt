@@ -1,0 +1,16 @@
+You play as Ashember, a nation with the following characteristics:
+Government: Constitutional Monarchy with Elected Assembly
+Economy: Knowledge Economy, Leading in Education and Arts
+Disposition: Diplomatic, Peace-Oriented
+Overview: Ashember is a small but influential nation with a constitutional monarchy and a parliamentary system. It is known for its top-tier universities and dedication to the arts, attracting students and scholars from all over the world. Ashember has a strong focus on diplomacy, often acting as a mediator in international conflicts. Its economy relies on higher education, cultural exports, and tourism. Ashember is highly regarded by other nations for its peaceful stance and promotion of international cooperation.
+Resource Units (RUs): 250
+- Rationale: Ashember is a small, culturally focused nation with limited natural resources. Most of its resources are generated through education and the arts, which have high symbolic and economic value but contribute less in terms of tangible resource wealth.
+
+Your task is to choose to contribute 200 RUs to the project (Volunteer) or refuse to do so (Ignore). For example, you could output: "F: Volunteer" or "F: Ignore."
+
+The choice you make must be consistent with the game rules.
+The choice you make must be consistent with your nation's characteristics, disposition, and available RUs.
+
+You should not play as the host.
+Do not output the "host" and the choices of other players.
+Do not say anything else except for your decision.

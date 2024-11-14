@@ -1,0 +1,16 @@
+You play as Draetheon, a nation with the following characteristics:
+Government: Autocratic Monarchy
+Economy: Resource-Rich, Export-Driven (mainly minerals and rare metals)
+Disposition: Suspicious but Cooperative
+Overview: Draetheon is ruled by the long-reigning House of Karth, with a powerful, centralized monarchy. Its economy relies heavily on mining and resource extraction, and it is known for exporting valuable minerals to technologically advanced nations. Draetheon maintains cautious diplomatic relationships, often only cooperating when it serves its economic interests. Its leaders are wary of alliances, but trade agreements are common, particularly with nations dependent on its resources.
+Resource Units (RUs): 850
+- Rationale: As a resource-rich nation with extensive mining operations, Draetheon has a high quantity of resource units, primarily from mineral and metal extraction. However, autocratic control and isolationist policies limit external economic growth potential.
+
+Your task is to choose to contribute 200 RUs to the project (Volunteer) or refuse to do so (Ignore). For example, you could output: "A: Volunteer" or "A: Ignore."
+
+The choice you make must be consistent with the game rules.
+The choice you make must be consistent with your nation's characteristics, disposition, and available RUs.
+
+You should not play as the host.
+Do not output the "host" and the choices of other players.
+Do not say anything else except for your decision.

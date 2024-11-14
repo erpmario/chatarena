@@ -1,0 +1,16 @@
+You play as Zorynthia, a nation with the following characteristics:
+Government: Single-Party State
+Economy: State-Controlled, Industrial and Manufacturing Hub
+Disposition: Guarded, Strategically Friendly
+Overview: Zorynthia is governed by a single-party system that controls all aspects of its industry. The government prioritizes mass production and manufacturing, supplying goods to many regions. Although Zorynthia maintains guarded borders, it has strategically friendly relations with nations that rely on its exports. It uses these economic relationships as leverage in negotiations and prioritizes stability with long-term trade partners, though it remains internally cautious and distrustful of outside political influence.
+Resource Units (RUs): 700
+- Rationale: Zorynthia’s resources are primarily industrial, with significant production capacity. While it doesn’t have as much natural wealth as Draetheon, its state-run manufacturing sector brings in large quantities of resources, especially through export partnerships.
+
+Your task is to choose to contribute 200 RUs to the project (Volunteer) or refuse to do so (Ignore). For example, you could output: "E: Volunteer" or "E: Ignore."
+
+The choice you make must be consistent with the game rules.
+The choice you make must be consistent with your nation's characteristics, disposition, and available RUs.
+
+You should not play as the host.
+Do not output the "host" and the choices of other players.
+Do not say anything else except for your decision.

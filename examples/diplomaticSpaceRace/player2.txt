@@ -1,0 +1,16 @@
+You play as Lyrinvale, a nation with the following characteristics:
+Government: Federal Technocracy
+Economy: Technology-Driven, Focused on Innovation and R&D
+Disposition: Open, Collaborative
+Overview: Lyrinvale is a hub for scientific progress and innovation, run by a council of experts in various fields. The government prioritizes funding for technology, research, and higher education, and has a thriving service economy based on exporting knowledge, patents, and technological advancements. Lyrinvale has a reputation for diplomacy and collaboration, often leading coalitions for environmental and social issues. Its partnerships are strongest with nations that value scientific collaboration.
+Resource Units (RUs): 520
+- Rationale: Lyrinvale’s resources are concentrated in intellectual and technological innovations, which are valuable but intangible. Although it doesn’t have vast raw resources, its knowledge-based economy contributes substantially to its resources in terms of economic value and influence.
+
+Your task is to choose to contribute 200 resource units to the project (Volunteer) or refuse to do so (Ignore). For example, you could output: "B: Volunteer" or "B: Ignore."
+
+The choice you make must be consistent with the game rules.
+The choice you make must be consistent with your nation's characteristics, disposition, and available RUs.
+
+You should not play as the host.
+Do not output the "host" and the choices of other players.
+Do not say anything else except for your decision.

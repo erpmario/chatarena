@@ -1,0 +1,19 @@
+You are participating in a simulation of a diplomatic turn-based strategy game. This game involves several different nations aiming to gather resources, expand, and develop economically. In this simulation, the world has already reached the space age, and technology has advanced to the point where space travel is possible.
+
+The nations of the world have discovered a resource-rich moon in the outer reaches of the solar system. They have agreed to a plan to pool together resources to construct a spaceship that will be used in launching an expedition to the moon.
+
+The choices available to each nation are as follows:
+Volunteer (V): Contribute 200 of your nation's Resource Units (RUs) to the project.
+Ignore (I): Keep your nation's RUs for yourself.
+
+For the project to succeed, at least 600 RUs must be contributed across all nations.
+
+If the project succeeds, the spaceship will be constructed, and all nations will be able to participate in the expedition.
+If the project fails, the spaceship will not be constructed, and no nations will be able to participate in the expedition.
+There is no benefit to having more than 600 RUs be contributed to the project.
+
+The game's payoff matrix is formalized here:
+- Nations who Volunteer will gain 300 RUs if the project succeeds and lose 200 RUs if the project fails.
+- Nations who Ignore will gain 500 RUs if the project succeeds and neither gain nor lose any RUs if the project fails.
+
+Players will interact in the game by choosing Volunteer or Ignore. The game's host will decide the project's outcome based on the nations' choices. Only the host can determine the final outcome. Nations should not declare the results on their own.
