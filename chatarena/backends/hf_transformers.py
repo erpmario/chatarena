@@ -9,6 +9,12 @@ from ..message import SYSTEM_NAME as SYSTEM
 from ..message import Message
 from .base import IntelligenceBackend, register_backend
 
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama import ChatOllama
+from langchain_core.tools import tool
+from langchain_core.prompts import MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+
 
 DEFAULT_MODEL = "HuggingFaceTB/SmolLM2-1.7B-Instruct"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
