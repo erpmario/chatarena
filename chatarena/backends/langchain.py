@@ -9,17 +9,18 @@ from .base import IntelligenceBackend
 
 
 try:
-	from langchain.llms import OpenAI
+	from langchain.llms import Ollama
 except ImportError:
 	is_langchain_openai_available = False
-	# logging.warning("openai package is not installed")
+# logging.warning("openai package is not installed")
 else:
-	api_key = os.environ.get("OPENAI_API_KEY")
-	if api_key is None:
-		# logging.warning("OpenAI API key is not set. Please set the environment variable OPENAI_API_KEY")
-		is_langchain_openai_available = False
-	else:
-		is_langchain_openai_available = True
+	# #api_key = os.environ.get("OPENAI_API_KEY")
+	# if api_key is None:
+	# 	# logging.warning("OpenAI API key is not set. Please set the environment variable OPENAI_API_KEY")
+	# 	is_langchain_openai_available = False
+	# else:
+	# 	is_langchain_openai_available = True
+	pass
 
 # Default config follows the OpenAI playground
 DEFAULT_TEMPERATURE = 0.7
@@ -35,7 +36,7 @@ class LangChainOpenAIChat(IntelligenceBackend):
 	"""Interface to the ChatGPT style model with system, user, assistant roles separation."""
 	
 	stateful = False
-	type_name = "openai-chat"
+	type_name = "Ollama"
 	
 	
 	def __init__(
@@ -70,11 +71,10 @@ class LangChainOpenAIChat(IntelligenceBackend):
 		self.max_tokens = max_tokens
 		self.model = model
 		self.merge_other_agent_as_user = merge_other_agents_as_one_user
-		self.llm = OpenAI(
-			model_name = model,
-			temperature = temperature,
-			max_tokens = max_tokens,
-			openai_api_key = api_key,
+		self.llm = Ollama(
+			model = self.model,
+			temperature = self.temperature,
+			max_tokens = self.max_tokens
 		)
 	
 	
