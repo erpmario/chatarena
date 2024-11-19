@@ -4,12 +4,13 @@ from typing import List
 
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
+from . import register_backend
 from ..message import SYSTEM_NAME, Message
 from .base import IntelligenceBackend
 
 
 try:
-	from langchain.llms import Ollama
+	from langchain_ollama import OllamaLLM
 except ImportError:
 	is_langchain_openai_available = False
 # logging.warning("openai package is not installed")
@@ -18,25 +19,25 @@ else:
 	# if api_key is None:
 	# 	# logging.warning("OpenAI API key is not set. Please set the environment variable OPENAI_API_KEY")
 	# 	is_langchain_openai_available = False
-	# else:
-	# 	is_langchain_openai_available = True
+	is_langchain_openai_available = True
 	pass
 
 # Default config follows the OpenAI playground
-DEFAULT_TEMPERATURE = 0.7
+DEFAULT_TEMPERATURE = 0.3
 DEFAULT_MAX_TOKENS = 256
-DEFAULT_MODEL = "gpt-3.5-turbo"
+DEFAULT_MODEL = "llama3.1:70b"
 
 END_OF_MESSAGE = "<EOS>"  # End of message token specified by us not OpenAI
-STOP = ("<|endoftext|>", END_OF_MESSAGE)  # End of sentence token
+STOP = ["<|endoftext|>", END_OF_MESSAGE]  # End of sentence token
 BASE_PROMPT = f"The messages always end with the token {END_OF_MESSAGE}."
 
 
+@register_backend
 class LangChainOpenAIChat(IntelligenceBackend):
 	"""Interface to the ChatGPT style model with system, user, assistant roles separation."""
 	
 	stateful = False
-	type_name = "Ollama"
+	type_name = "langchain:ollama"
 	
 	
 	def __init__(
@@ -71,16 +72,16 @@ class LangChainOpenAIChat(IntelligenceBackend):
 		self.max_tokens = max_tokens
 		self.model = model
 		self.merge_other_agent_as_user = merge_other_agents_as_one_user
-		self.llm = Ollama(
+		self.llm = OllamaLLM(
 			model = self.model,
 			temperature = self.temperature,
-			max_tokens = self.max_tokens
+		
 		)
 	
 	
 	@retry(stop = stop_after_attempt(6), wait = wait_random_exponential(min = 1, max = 60))
 	def _get_response(self, messages):
-		response = self.llm(prompt = messages, stop = STOP)
+		response = self.llm.invoke(messages, stop = STOP)
 		return response
 	
 	

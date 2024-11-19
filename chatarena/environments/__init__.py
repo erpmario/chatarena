@@ -2,7 +2,6 @@ from ..config import EnvironmentConfig
 from .base import ENV_REGISTRY, Environment, TimeStep, register_env
 from .chameleon import Chameleon
 from .conversation import Conversation, ModeratedConversation
-from .pettingzoo_chess import PettingzooChess
 from .pettingzoo_tictactoe import PettingzooTicTacToe
 
 

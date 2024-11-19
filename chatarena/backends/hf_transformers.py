@@ -4,19 +4,14 @@ from typing import List, Dict
 
 import torch
 from tenacity import retry, stop_after_attempt, wait_random_exponential
+from huggingface_hub import login
 
 from ..message import SYSTEM_NAME as SYSTEM
 from ..message import Message
 from .base import IntelligenceBackend, register_backend
 
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama import ChatOllama
-from langchain_core.tools import tool
-from langchain_core.prompts import MessagesPlaceholder
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-
-DEFAULT_MODEL = "HuggingFaceTB/SmolLM2-1.7B-Instruct"
+DEFAULT_MODEL = "meta-llama/Llama-3.1-8B-Instruct"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SINGLETON_MODE = True
 
@@ -39,6 +34,8 @@ with suppress_stdout_stderr():
 		# 	ConversationalPipeline,
 		# )
 		from transformers.pipelines.text_generation import TextGenerationPipeline
+		
+		login("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")
 	except ImportError:
 		is_transformers_available = False
 	else:
