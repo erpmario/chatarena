@@ -584,4 +584,4 @@ Prompting multiple AI agents to play games in a language-driven environment.
 	)
 
 demo.queue()
-demo.launch(debug = DEBUG, server_port = 8080, share = True)
+demo.launch(debug = DEBUG, server_port = 8080, share = False)
