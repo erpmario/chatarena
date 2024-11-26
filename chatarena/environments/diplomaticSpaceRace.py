@@ -167,11 +167,12 @@ class DiplomaticSpaceRace(Environment):
 						moderatorMessage += f"{payoff} RUs.\n"
 				if projectSucceeded:
 					moderatorMessage += "Since the project succeeded, we now move into the second phase of the game."
-					self.initPD()
 				else:
 					moderatorMessage += "Since the project failed, the game is over."
 				self._moderator_speak(moderatorMessage)
 				self.currentTurn += 1
+				if projectSucceeded:
+					self.initPD()
 				timestep = TimeStep(
 					observation = self.get_observation(),
 					reward = self.resourceUnits,
