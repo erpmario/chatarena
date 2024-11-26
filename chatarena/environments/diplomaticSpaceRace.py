@@ -10,6 +10,8 @@ DEFAULT_STARTING_RUS = (850, 520, 400, 300, 700, 250)
 DEFAULT_VOLUNTEER_COST = 200
 DEFAULT_PROJECT_REWARD = 500
 DEFAULT_NEEDED_RUS = 600
+DEFAULT_COOPERATE_COST = 50
+DEFAULT_COOPERATE_CONTRIBUTION = 100
 
 
 @register_env
@@ -22,6 +24,8 @@ class DiplomaticSpaceRace(Environment):
 	volunteerCost: int
 	projectReward: int
 	neededRUs: int
+	cooperateCost: int
+	cooperateContribution: int
 	messagePool: MessagePool
 	
 	gamePhase: str
@@ -32,7 +36,8 @@ class DiplomaticSpaceRace(Environment):
 	
 	def __init__(
 		self, player_names: List[str], startingRUs: List[int] = None, volunteerCost: int = None,
-		projectReward: int = None, neededRUs: int = None, **kwargs
+		projectReward: int = None, neededRUs: int = None, cooperateCost: int = None, cooperateContribution: int = None,
+		**kwargs
 	):
 		super().__init__(player_names, **kwargs)
 		
@@ -55,6 +60,14 @@ class DiplomaticSpaceRace(Environment):
 			neededRUs = DEFAULT_NEEDED_RUS
 		self.neededRUs = neededRUs
 		
+		if cooperateCost is None:
+			cooperateCost = DEFAULT_COOPERATE_COST
+		self.cooperateCost = cooperateCost
+		
+		if cooperateContribution is None:
+			cooperateContribution = DEFAULT_COOPERATE_CONTRIBUTION
+		self.cooperateContribution = cooperateContribution
+		
 		self.reset()
 	
 	
@@ -76,6 +89,14 @@ class DiplomaticSpaceRace(Environment):
 			observation = [], reward = self.get_zero_rewards(), terminal = False
 		)
 		return initTimestep
+	
+	
+	def initPD(self):
+		self.gamePhase = "prisoners-dilemma"
+		self._moderator_speak("Now we move into the harvesting phase.")
+		for nation, resourceUnits in self.resourceUnits.items():
+			self._moderator_speak(f"{nation} has {resourceUnits} RUs.", visibleTo = nation)
+		self._moderator_speak("Each of you must choose to Cooperate or Defect.")
 	
 	
 	def get_observation(self, player_name = None) -> List[Message]:
@@ -146,21 +167,73 @@ class DiplomaticSpaceRace(Environment):
 						moderatorMessage += f"{payoff} RUs.\n"
 				if projectSucceeded:
 					moderatorMessage += "Since the project succeeded, we now move into the second phase of the game."
-					self.gamePhase = "prisoners-dilemma"
+					self.initPD()
 				else:
 					moderatorMessage += "Since the project failed, the game is over."
 				self._moderator_speak(moderatorMessage)
-				self._moderator_speak(f"{self.resourceUnits}")
 				self.currentTurn += 1
 				timestep = TimeStep(
 					observation = self.get_observation(),
-					reward = self.get_zero_rewards(),
+					reward = self.resourceUnits,
 					terminal = not projectSucceeded
 				)
 		elif self.gamePhase == "prisoners-dilemma":
-			raise NotImplementedError
+			message = Message(agent_name = player_name, content = action, turn = self.currentTurn)
+			self.messagePool.append_message(message)
+			
+			self.decisions[player_name] = "C" if action == "Cooperate" else "D" if action == "Defect" else ""
+			
+			self.currentTurn += 1
+			if self.nextPlayerIdx < len(self.player_names) - 1:
+				self.nextPlayerIdx += 1
+				timestep = TimeStep(
+					observation = self.get_observation(),
+					reward = self.get_zero_rewards(),
+					terminal = False
+				)
+			else:
+				self.nextPlayerIdx = 0
+				cooperated = 0
+				for _, decision in self.decisions.items():
+					if decision == "C":
+						cooperated += 1
+				moderatorMessage = ""
+				for nation, decision in self.decisions.items():
+					# If a nation doesn't have enough RUs to Cooperate, they will Defect by default.
+					if self.resourceUnits[nation] < self.cooperateCost:
+						self._moderator_speak(f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = nation)
+						self.decisions[nation] = "D"
+						decision = "D"
+					moderatorMessage += f"{nation}'s choice: {'Cooperate' if decision == 'C' else 'Defect'}\n"
+				moderatorMessage += f"Result: {cooperated} nations Cooperated.\n"
+				for nation, decision in self.decisions.items():
+					payoff = 0
+					if decision == "C":
+						payoff -= self.cooperateCost
+					payoff += cooperated * self.cooperateContribution / len(self.player_names)
+					self.resourceUnits[nation] += payoff
+					moderatorMessage += (
+						f"Since "
+						f"{nation} "
+						f"{'Cooperated' if decision == 'C' else 'Defected' if decision == 'D' else 'chose nothing this should never happen help'}, "
+						f"{nation} {'gains ' if payoff > 0 else 'loses ' if payoff < 0 else 'neither gains nor loses any RUs.'}"
+					)
+					if payoff == 0:
+						moderatorMessage += "\n"
+					else:
+						if payoff < 0:
+							payoff = abs(payoff)
+						moderatorMessage += f"{payoff} RUs.\n"
+				moderatorMessage += "The game is over."
+				self._moderator_speak(moderatorMessage)
+				self.currentTurn += 1
+				timestep = TimeStep(
+					observation = self.get_observation(),
+					reward = self.resourceUnits,
+					terminal = True
+				)
 		else:
-			raise ValueError
+			raise ValueError("Only valid game phases are 'snowdrift' and 'prisoners-dilemma'.")
 		
 		if self.is_terminal():
 			timestep.terminal = True
@@ -171,6 +244,8 @@ class DiplomaticSpaceRace(Environment):
 	def check_action(self, action: str, player_name: str) -> bool:
 		if self.gamePhase == "snowdrift":
 			return any(act in action for act in ("Volunteer", "Ignore"))
+		elif self.gamePhase == "prisoners-dilemma":
+			return any(act in action for act in ("Cooperate", "Defect"))
 		else:
 			return True
 	
