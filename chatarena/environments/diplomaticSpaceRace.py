@@ -1,3 +1,4 @@
+import math
 from typing import Dict, List, Union
 
 from .base import Environment, TimeStep, register_env
@@ -171,23 +172,10 @@ class DiplomaticSpaceRace(Environment):
 			if decision == "V":
 				moderatorMessage += f"Since {nation} Volunteered, they lose {self.volunteerCost} RUs. "
 			else:
-				moderatorMessage += f"Since {nation} Ignored, they do not lose any RUs.\n"
+				moderatorMessage += f"Since {nation} Ignored, they do not lose any RUs. "
 			if projectSucceeded:
-				moderatorMessage += f"However, since the project succeeded, they gain {self.projectReward} RUs.\n"
+				moderatorMessage += f"However, since the project succeeded, they gain {self.projectReward} RUs. "
 			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
-		# moderatorMessage += (
-		# 	f"Since "
-		# 	f"{nation} "
-		# 	f"{'Volunteered' if decision == 'V' else 'Ignored' if decision == 'I' else 'chose nothing this should never happen help'} "
-		# 	f"and the project {'succeeded' if projectSucceeded else 'failed'}, "
-		# 	f"{nation} {'gains ' if payoff > 0 else 'loses ' if payoff < 0 else 'neither gains nor loses any RUs.'}"
-		# )
-		# if payoff == 0:
-		# 	moderatorMessage += "\n"
-		# else:
-		# 	if payoff < 0:
-		# 		payoff = abs(payoff)
-		# 	moderatorMessage += f"{payoff} RUs.\n"
 		if projectSucceeded:
 			moderatorMessage += "Since the project succeeded, we now move into the second phase of the game."
 		else:
@@ -236,24 +224,20 @@ class DiplomaticSpaceRace(Environment):
 				decision = "D"
 			moderatorMessage += f"{nation}'s choice: {'Cooperate' if decision == 'C' else 'Defect'}\n"
 		moderatorMessage += f"Result: {cooperated} nations Cooperated.\n"
+		distributedReward = math.floor(cooperated * self.cooperateContribution / len(self.player_names))
 		for nation, decision in self.decisions.items():
 			payoff = 0
 			if decision == "C":
 				payoff -= self.cooperateCost
-			payoff += cooperated * self.cooperateContribution / len(self.player_names)
+			payoff += distributedReward
 			self.resourceUnits[nation] += payoff
-			moderatorMessage += (
-				f"Since "
-				f"{nation} "
-				f"{'Cooperated' if decision == 'C' else 'Defected' if decision == 'D' else 'chose nothing this should never happen help'}, "
-				f"{nation} {'gains ' if payoff > 0 else 'loses ' if payoff < 0 else 'neither gains nor loses any RUs.'}"
-			)
-			if payoff == 0:
-				moderatorMessage += "\n"
+			if decision == "C":
+				moderatorMessage += f"Since {nation} Cooperated, they lose {self.cooperateCost} RUs. "
 			else:
-				if payoff < 0:
-					payoff = abs(payoff)
-				moderatorMessage += f"{payoff} RUs.\n"
+				moderatorMessage += f"Since {nation} Defected, they do not lose any RUs. "
+			if cooperated > 0:
+				moderatorMessage += f"However, since {cooperated} nations Cooperated, {nation} gains {distributedReward} RUs. "
+			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
 		moderatorMessage += "The game is over."
 		self._moderator_speak(moderatorMessage)
 		self.currentTurn += 1
