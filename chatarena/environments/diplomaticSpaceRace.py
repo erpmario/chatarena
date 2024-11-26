@@ -139,7 +139,7 @@ class DiplomaticSpaceRace(Environment):
 	def _processSnowdriftStep(self, action, player_name):
 		message = Message(agent_name = player_name, content = action, turn = self.currentTurn)
 		self.messagePool.append_message(message)
-		self.decisions[player_name] = "V" if action == "Volunteer" else "I" if action == "Ignore" else ""
+		self.decisions[player_name] = "V" if "Volunteer" in action else "I" if "Ignore" in action else ""
 		self.currentTurn += 1
 		if self.nextPlayerIdx < len(self.player_names) - 1:
 			self.nextPlayerIdx += 1
@@ -163,7 +163,7 @@ class DiplomaticSpaceRace(Environment):
 		moderatorMessage = ""
 		for nation, decision in self.decisions.items():
 			moderatorMessage += f"{nation}'s choice: {'Volunteer' if decision == 'V' else 'Ignore'}\n"
-		moderatorMessage += f"Result: The project {'succeeds' if projectSucceeded else 'fails'}!\n"
+		moderatorMessage += f"\nResult: The project {'succeeds' if projectSucceeded else 'fails'}!\n\n"
 		for nation, decision in self.decisions.items():
 			payoff = self.projectReward if projectSucceeded else 0
 			if decision == "V":
@@ -177,9 +177,9 @@ class DiplomaticSpaceRace(Environment):
 				moderatorMessage += f"However, since the project succeeded, they gain {self.projectReward} RUs. "
 			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
 		if projectSucceeded:
-			moderatorMessage += "Since the project succeeded, we now move into the second phase of the game."
+			moderatorMessage += "\nSince the project succeeded, we now move into the second phase of the game."
 		else:
-			moderatorMessage += "Since the project failed, the game is over."
+			moderatorMessage += "\nSince the project failed, the game is over."
 		self._moderator_speak(moderatorMessage)
 		self.currentTurn += 1
 		if projectSucceeded:
@@ -195,7 +195,7 @@ class DiplomaticSpaceRace(Environment):
 	def _processPDStep(self, action, player_name):
 		message = Message(agent_name = player_name, content = action, turn = self.currentTurn)
 		self.messagePool.append_message(message)
-		self.decisions[player_name] = "C" if action == "Cooperate" else "D" if action == "Defect" else ""
+		self.decisions[player_name] = "C" if "Cooperate" in action else "D" if "Defect" in action else ""
 		self.currentTurn += 1
 		if self.nextPlayerIdx < len(self.player_names) - 1:
 			self.nextPlayerIdx += 1
@@ -223,7 +223,7 @@ class DiplomaticSpaceRace(Environment):
 				self.decisions[nation] = "D"
 				decision = "D"
 			moderatorMessage += f"{nation}'s choice: {'Cooperate' if decision == 'C' else 'Defect'}\n"
-		moderatorMessage += f"Result: {cooperated} nations Cooperated.\n"
+		moderatorMessage += f"\nResult: {cooperated} nations Cooperated.\n\n"
 		distributedReward = math.floor(cooperated * self.cooperateContribution / len(self.player_names))
 		for nation, decision in self.decisions.items():
 			payoff = 0
@@ -238,7 +238,7 @@ class DiplomaticSpaceRace(Environment):
 			if cooperated > 0:
 				moderatorMessage += f"However, since {cooperated} nations Cooperated, {nation} gains {distributedReward} RUs. "
 			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
-		moderatorMessage += "The game is over."
+		moderatorMessage += "\nThe game is over."
 		self._moderator_speak(moderatorMessage)
 		self.currentTurn += 1
 		timestep = TimeStep(
