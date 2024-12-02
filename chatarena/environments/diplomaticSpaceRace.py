@@ -15,6 +15,10 @@ DEFAULT_NEEDED_RUS = 600
 DEFAULT_COOPERATE_COST = 50
 DEFAULT_COOPERATE_CONTRIBUTION = 100
 
+DEFAULT_SD_MODE = "one-shot"
+DEFAULT_PD_MODE = "iterated"
+PD_ITERATIONS = 3
+
 
 @register_env
 class DiplomaticSpaceRace(Environment):
@@ -28,10 +32,13 @@ class DiplomaticSpaceRace(Environment):
 	neededRUs: int
 	cooperateCost: int
 	cooperateContribution: int
+	snowdriftMode: str
+	prisonersDilemmaMode: str
 	messagePool: MessagePool
 	
 	gamePhase: str
 	currentTurn: int
+	currentIteration: int
 	nextPlayerIdx: int
 	initialized: bool
 	
@@ -39,6 +46,7 @@ class DiplomaticSpaceRace(Environment):
 	def __init__(
 		self, player_names: List[str], players: List[Player], startingRUs: List[int] = None, volunteerCost: int = None,
 		projectReward: int = None, neededRUs: int = None, cooperateCost: int = None, cooperateContribution: int = None,
+		snowdriftMode: str = None, prisonersDilemmaMode: str = None,
 		**kwargs
 	):
 		super().__init__(player_names, players, **kwargs)
@@ -70,11 +78,20 @@ class DiplomaticSpaceRace(Environment):
 			cooperateContribution = DEFAULT_COOPERATE_CONTRIBUTION
 		self.cooperateContribution = cooperateContribution
 		
+		if snowdriftMode is None:
+			snowdriftMode = DEFAULT_SD_MODE
+		self.snowdriftMode = snowdriftMode
+		
+		if prisonersDilemmaMode is None:
+			prisonersDilemmaMode = DEFAULT_PD_MODE
+		self.prisonersDilemmaMode = prisonersDilemmaMode
+		
 		self.reset()
 	
 	
 	def reset(self):
 		self.currentTurn = 0
+		self.currentIteration = 0
 		self.nextPlayerIdx = 0
 		self.messagePool.reset()
 		self.resourceUnits = {}
@@ -98,13 +115,28 @@ class DiplomaticSpaceRace(Environment):
 	
 	def initPD(self):
 		self.gamePhase = "prisoners-dilemma"
+		self.currentIteration = 0
 		for player in self.players:
 			if isinstance(player.backend, StrategicBase):
 				player.backend.game_phase = "prisoners-dilemma"
 		self._moderator_speak("Now we move into the harvesting phase.")
-		for nation, resourceUnits in self.resourceUnits.items():
-			self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
-		self._moderator_speak("Each of you must choose to Cooperate or Defect.")
+		if self.prisonersDilemmaMode == "iterated":
+			self._nextPDIteration()
+		else:
+			for nation, resourceUnits in self.resourceUnits.items():
+				self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
+			self._moderator_speak("Each of you must choose to Cooperate or Defect.")
+	
+	
+	def _nextPDIteration(self):
+		self.currentIteration += 1
+		if self.currentIteration > PD_ITERATIONS:
+			pass
+		else:
+			self._moderator_speak(f"This is iteration {self.currentIteration}.")
+			for nation, resourceUnits in self.resourceUnits.items():
+				self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
+			self._moderator_speak("Each of you must choose to Cooperate or Defect.")
 	
 	
 	def get_observation(self, player_name = None) -> List[Message]:
@@ -226,7 +258,9 @@ class DiplomaticSpaceRace(Environment):
 		for nation, decision in self.decisions.items():
 			# If a nation doesn't have enough RUs to Cooperate, they will Defect by default.
 			if self.resourceUnits[nation] < self.cooperateCost:
-				self._moderator_speak(f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = nation)
+				self._moderator_speak(
+					f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = nation
+				)
 				self.decisions[nation] = "D"
 				decision = "D"
 			moderatorMessage += f"{nation}'s choice: {'Cooperate' if decision == 'C' else 'Defect'}\n"
@@ -245,14 +279,32 @@ class DiplomaticSpaceRace(Environment):
 			if cooperated > 0:
 				moderatorMessage += f"However, since {cooperated} nations Cooperated, {nation} gains {distributedReward} RUs. "
 			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
-		moderatorMessage += "\nThe game is over."
-		self._moderator_speak(moderatorMessage)
+		if self.prisonersDilemmaMode == "iterated":
+			if self.currentIteration < PD_ITERATIONS:
+				self._moderator_speak(moderatorMessage)
+				self._nextPDIteration()
+				timestep = TimeStep(
+					observation = self.get_observation(),
+					reward = self.resourceUnits,
+					terminal = False
+				)
+			else:
+				moderatorMessage += "\nSince this was the last iteration, the game is over."
+				self._moderator_speak(moderatorMessage)
+				timestep = TimeStep(
+					observation = self.get_observation(),
+					reward = self.resourceUnits,
+					terminal = True
+				)
+		else:
+			moderatorMessage += "\nThe game is over."
+			self._moderator_speak(moderatorMessage)
+			timestep = TimeStep(
+				observation = self.get_observation(),
+				reward = self.resourceUnits,
+				terminal = True
+			)
 		self.currentTurn += 1
-		timestep = TimeStep(
-			observation = self.get_observation(),
-			reward = self.resourceUnits,
-			terminal = True
-		)
 		return timestep
 	
 	

@@ -54,3 +54,24 @@ class Hawk(StrategicBase):
 			return "Defect"
 		else:
 			raise ValueError("Unknown game phase.")
+
+
+@register_backend
+class Random(StrategicBase):
+	type_name = "strategic:random"
+	
+	
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+	
+	
+	def query(self, agent_name: str, **kwargs) -> str:
+		import random
+		
+		if self.game_phase == "snowdrift":
+			return random.choice(["Volunteer", "Ignore"])
+		elif self.game_phase == "prisoners-dilemma":
+			return random.choice(["Cooperate", "Defect"])
+		else:
+			raise ValueError("Unknown game phase.")
+	
