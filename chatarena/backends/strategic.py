@@ -1,8 +1,5 @@
-from typing import List
-
-from ..config import BackendConfig
 from .base import IntelligenceBackend, register_backend
-from ..message import Message
+from ..config import BackendConfig
 
 
 class StrategicBase(IntelligenceBackend):
@@ -13,7 +10,6 @@ class StrategicBase(IntelligenceBackend):
 	
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		self.game_phase = "snowdrift"
 	
 	
 	def to_config(self) -> BackendConfig:
@@ -22,14 +18,9 @@ class StrategicBase(IntelligenceBackend):
 	
 	def query(self, agent_name: str, **kwargs) -> str:
 		raise NotImplementedError("Strategic backend is not implemented for querying.")
-	
-	
-	def _processQuery(self, agent_name: str, history_messages: List[Message]) -> None:
-		lastMessage: Message = history_messages[-1]
-		if lastMessage.agent_name == "Moderator" and lastMessage.content == "":
-			self.game_phase = lastMessage.content
-	
-	
+
+
+@register_backend
 class Dove(StrategicBase):
 	type_name = "strategic:dove"
 	
@@ -39,6 +30,27 @@ class Dove(StrategicBase):
 	
 	
 	def query(self, agent_name: str, **kwargs) -> str:
-		super().query(agent_name = agent_name, **kwargs)
-		return "cooperate"
+		if self.game_phase == "snowdrift":
+			return "Volunteer"
+		elif self.game_phase == "prisoners-dilemma":
+			return "Cooperate"
+		else:
+			raise ValueError("Unknown game phase.")
+
+
+@register_backend
+class Hawk(StrategicBase):
+	type_name = "strategic:hawk"
 	
+	
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+	
+	
+	def query(self, agent_name: str, **kwargs) -> str:
+		if self.game_phase == "snowdrift":
+			return "Ignore"
+		elif self.game_phase == "prisoners-dilemma":
+			return "Defect"
+		else:
+			raise ValueError("Unknown game phase.")

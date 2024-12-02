@@ -3,6 +3,7 @@ from typing import Dict, List, Union
 
 from .base import Environment, TimeStep, register_env
 from ..agent import SIGNAL_END_OF_CONVERSATION, Player
+from ..backends.strategic import StrategicBase
 from ..message import Message, MessagePool
 
 
@@ -69,7 +70,6 @@ class DiplomaticSpaceRace(Environment):
 			cooperateContribution = DEFAULT_COOPERATE_CONTRIBUTION
 		self.cooperateContribution = cooperateContribution
 		
-		print(self.players)
 		self.reset()
 	
 	
@@ -79,9 +79,12 @@ class DiplomaticSpaceRace(Environment):
 		self.messagePool.reset()
 		self.resourceUnits = {}
 		self.decisions = {}
-		for i in range(len(self.player_names)):
+		for i in range(len(self.players)):
+			ithPlayer = self.players[i]
 			self.resourceUnits[self.player_names[i]] = self.startingRUs[i]
 			self.decisions[self.player_names[i]] = ""
+			if isinstance(ithPlayer.backend, StrategicBase):
+				ithPlayer.backend.game_phase = "snowdrift"
 		self.gamePhase = "snowdrift"
 		
 		self._moderator_speak("Now the game starts! Each of you must choose to Volunteer or Ignore.")
@@ -95,6 +98,9 @@ class DiplomaticSpaceRace(Environment):
 	
 	def initPD(self):
 		self.gamePhase = "prisoners-dilemma"
+		for player in self.players:
+			if isinstance(player.backend, StrategicBase):
+				player.backend.game_phase = "prisoners-dilemma"
 		self._moderator_speak("Now we move into the harvesting phase.")
 		for nation, resourceUnits in self.resourceUnits.items():
 			self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
