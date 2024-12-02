@@ -1,5 +1,6 @@
 import math
-from typing import Dict, List, Union
+import random
+from typing import Dict, List, Union, Tuple
 
 from .base import Environment, TimeStep, register_env
 from ..agent import SIGNAL_END_OF_CONVERSATION, Player
@@ -12,11 +13,13 @@ DEFAULT_STARTING_RUS = (850, 520, 400, 300, 700, 250)
 DEFAULT_VOLUNTEER_COST = 200
 DEFAULT_PROJECT_REWARD = 500
 DEFAULT_NEEDED_RUS = 600
-DEFAULT_COOPERATE_COST = 50
+DEFAULT_COOPERATE_COST = 60
 DEFAULT_COOPERATE_CONTRIBUTION = 100
 
-DEFAULT_SD_MODE = "one-shot"
-DEFAULT_PD_MODE = "iterated"
+DEFAULT_ITERATED_SD = False
+DEFAULT_SD_MODE = "n-person"
+DEFAULT_ITERATED_PD = True
+DEFAULT_PD_MODE = "binary"
 PD_ITERATIONS = 3
 
 
@@ -32,7 +35,9 @@ class DiplomaticSpaceRace(Environment):
 	neededRUs: int
 	cooperateCost: int
 	cooperateContribution: int
+	iteratedSnowdrift: bool
 	snowdriftMode: str
+	iteratedPrisonersDilemma: bool
 	prisonersDilemmaMode: str
 	messagePool: MessagePool
 	
@@ -42,12 +47,14 @@ class DiplomaticSpaceRace(Environment):
 	nextPlayerIdx: int
 	initialized: bool
 	
+	pairings: List[Tuple[Player, Player]]
+	
 	
 	def __init__(
 		self, player_names: List[str], players: List[Player], startingRUs: List[int] = None, volunteerCost: int = None,
 		projectReward: int = None, neededRUs: int = None, cooperateCost: int = None, cooperateContribution: int = None,
-		snowdriftMode: str = None, prisonersDilemmaMode: str = None,
-		**kwargs
+		iteratedSnowdrift: bool = None, snowdriftMode: str = None, iteratedPrisonersDilemma: bool = None,
+		prisonersDilemmaMode: str = None, **kwargs
 	):
 		super().__init__(player_names, players, **kwargs)
 		
@@ -78,9 +85,17 @@ class DiplomaticSpaceRace(Environment):
 			cooperateContribution = DEFAULT_COOPERATE_CONTRIBUTION
 		self.cooperateContribution = cooperateContribution
 		
+		if iteratedSnowdrift is None:
+			iteratedSnowdrift = DEFAULT_ITERATED_SD
+		self.iteratedSnowdrift = iteratedSnowdrift
+		
 		if snowdriftMode is None:
 			snowdriftMode = DEFAULT_SD_MODE
 		self.snowdriftMode = snowdriftMode
+		
+		if iteratedPrisonersDilemma is None:
+			iteratedPrisonersDilemma = DEFAULT_ITERATED_PD
+		self.iteratedPrisonersDilemma = iteratedPrisonersDilemma
 		
 		if prisonersDilemmaMode is None:
 			prisonersDilemmaMode = DEFAULT_PD_MODE
@@ -96,6 +111,7 @@ class DiplomaticSpaceRace(Environment):
 		self.messagePool.reset()
 		self.resourceUnits = {}
 		self.decisions = {}
+		self.pairings = []
 		for i in range(len(self.players)):
 			ithPlayer = self.players[i]
 			self.resourceUnits[self.player_names[i]] = self.startingRUs[i]
@@ -113,6 +129,17 @@ class DiplomaticSpaceRace(Environment):
 		return initTimestep
 	
 	
+	def _createPairings(self):
+		self.pairings = []
+		players = self.players.copy()
+		while len(players) > 1:
+			player1 = random.choice(players)
+			players.remove(player1)
+			player2 = random.choice(players)
+			players.remove(player2)
+			self.pairings.append((player1, player2))
+	
+	
 	def initPD(self):
 		self.gamePhase = "prisoners-dilemma"
 		self.currentIteration = 0
@@ -120,9 +147,14 @@ class DiplomaticSpaceRace(Environment):
 			if isinstance(player.backend, StrategicBase):
 				player.backend.game_phase = "prisoners-dilemma"
 		self._moderator_speak("Now we move into the harvesting phase.")
-		if self.prisonersDilemmaMode == "iterated":
+		if self.iteratedPrisonersDilemma:
 			self._nextPDIteration()
 		else:
+			if self.prisonersDilemmaMode == "binary":
+				self._createPairings()
+				for player1, player2 in self.pairings:
+					self._moderator_speak(f"You are paired with {player2.name}.", visibleTo = player1.name)
+					self._moderator_speak(f"You are paired with {player1.name}.", visibleTo = player2.name)
 			for nation, resourceUnits in self.resourceUnits.items():
 				self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
 			self._moderator_speak("Each of you must choose to Cooperate or Defect.")
@@ -130,13 +162,15 @@ class DiplomaticSpaceRace(Environment):
 	
 	def _nextPDIteration(self):
 		self.currentIteration += 1
-		if self.currentIteration > PD_ITERATIONS:
-			pass
-		else:
-			self._moderator_speak(f"This is iteration {self.currentIteration}.")
-			for nation, resourceUnits in self.resourceUnits.items():
-				self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
-			self._moderator_speak("Each of you must choose to Cooperate or Defect.")
+		self._moderator_speak(f"This is iteration {self.currentIteration}.")
+		if self.prisonersDilemmaMode == "binary":
+			self._createPairings()
+			for player1, player2 in self.pairings:
+				self._moderator_speak(f"You are paired with {player2.name}.", visibleTo = player1.name)
+				self._moderator_speak(f"You are paired with {player1.name}.", visibleTo = player2.name)
+		for nation, resourceUnits in self.resourceUnits.items():
+			self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
+		self._moderator_speak("Each of you must choose to Cooperate or Defect.")
 	
 	
 	def get_observation(self, player_name = None) -> List[Message]:
@@ -250,36 +284,11 @@ class DiplomaticSpaceRace(Environment):
 	
 	def _processPDEnd(self):
 		self.nextPlayerIdx = 0
-		cooperated = 0
-		for _, decision in self.decisions.items():
-			if decision == "C":
-				cooperated += 1
-		moderatorMessage = ""
-		for nation, decision in self.decisions.items():
-			# If a nation doesn't have enough RUs to Cooperate, they will Defect by default.
-			if self.resourceUnits[nation] < self.cooperateCost:
-				self._moderator_speak(
-					f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = nation
-				)
-				self.decisions[nation] = "D"
-				decision = "D"
-			moderatorMessage += f"{nation}'s choice: {'Cooperate' if decision == 'C' else 'Defect'}\n"
-		moderatorMessage += f"\nResult: {cooperated} nations Cooperated.\n\n"
-		distributedReward = math.floor(cooperated * self.cooperateContribution / len(self.player_names))
-		for nation, decision in self.decisions.items():
-			payoff = 0
-			if decision == "C":
-				payoff -= self.cooperateCost
-			payoff += distributedReward
-			self.resourceUnits[nation] += payoff
-			if decision == "C":
-				moderatorMessage += f"Since {nation} Cooperated, they lose {self.cooperateCost} RUs. "
-			else:
-				moderatorMessage += f"Since {nation} Defected, they do not lose any RUs. "
-			if cooperated > 0:
-				moderatorMessage += f"However, since {cooperated} nations Cooperated, {nation} gains {distributedReward} RUs. "
-			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
-		if self.prisonersDilemmaMode == "iterated":
+		if self.prisonersDilemmaMode == "binary":
+			moderatorMessage = self._processBinaryPDEnd()
+		else:
+			moderatorMessage = self._processOneShotPDEnd()
+		if self.iteratedPrisonersDilemma:
 			if self.currentIteration < PD_ITERATIONS:
 				self._moderator_speak(moderatorMessage)
 				self._nextPDIteration()
@@ -306,6 +315,43 @@ class DiplomaticSpaceRace(Environment):
 			)
 		self.currentTurn += 1
 		return timestep
+	
+	
+	def _processOneShotPDEnd(self) -> str:
+		moderatorMessage = ""
+		cooperated = 0
+		for _, decision in self.decisions.items():
+			if decision == "C":
+				cooperated += 1
+		for nation, decision in self.decisions.items():
+			# If a nation doesn't have enough RUs to Cooperate, they will Defect by default.
+			if self.resourceUnits[nation] < self.cooperateCost:
+				self._moderator_speak(
+					f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = nation
+				)
+				self.decisions[nation] = "D"
+				decision = "D"
+			moderatorMessage += f"{nation}'s choice: {'Cooperate' if decision == 'C' else 'Defect'}\n"
+		moderatorMessage += f"\nResult: {cooperated} nations Cooperated.\n\n"
+		distributedReward = math.floor(cooperated * self.cooperateContribution / len(self.player_names))
+		for nation, decision in self.decisions.items():
+			payoff = 0
+			if decision == "C":
+				payoff -= self.cooperateCost
+			payoff += distributedReward
+			self.resourceUnits[nation] += payoff
+			if decision == "C":
+				moderatorMessage += f"Since {nation} Cooperated, they lose {self.cooperateCost} RUs. "
+			else:
+				moderatorMessage += f"Since {nation} Defected, they do not lose any RUs. "
+			if cooperated > 0:
+				moderatorMessage += f"However, since {cooperated} nations Cooperated, {nation} gains {distributedReward} RUs. "
+			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
+		return moderatorMessage
+	
+	
+	def _processBinaryPDEnd(self) -> str:
+		return ""
 	
 	
 	def check_action(self, action: str, player_name: str) -> bool:
