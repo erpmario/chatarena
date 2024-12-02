@@ -14,6 +14,10 @@ class TooManyInvalidActions(Exception):
 	pass
 
 
+### El Psy Kongroo ###
+# Translation: This is the One True Object. The last bastion of sense in this entire codebase.
+# Grab it. Hold onto it. Never let it go. It is the only thing that can save you.
+# Use it to communicate data between the players and the environment.
 class Arena:
 	"""Utility class that manages the game environment and players."""
 	
@@ -128,6 +132,7 @@ class Arena:
 		config.environment[
 			"player_names"
 		] = player_names  # add the player names to the environment config
+		config.environment["players"] = players  # add the players to the environment config
 		env = load_environment(config.environment)
 		
 		return cls(players, env, global_prompt = global_prompt)

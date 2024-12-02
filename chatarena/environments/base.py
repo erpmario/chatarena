@@ -2,6 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Dict, List, Type
 
+from ..agent import Player
 from ..config import Configurable, EnvironmentConfig
 from ..message import Message
 from ..utils import AttributedDict
@@ -42,10 +43,11 @@ class Environment(Configurable):
 	"""
 	
 	type_name = None
+	players: List[Player]
 	
 	
 	@abstractmethod
-	def __init__(self, player_names: List[str], **kwargs):
+	def __init__(self, player_names: List[str], players: List[Player], **kwargs):
 		"""
 		Initialize the Environment.
 
@@ -53,9 +55,10 @@ class Environment(Configurable):
 			player_names (List[str]): Names of the players in the environment.
 		"""
 		super().__init__(
-			player_names = player_names, **kwargs
+			player_names = player_names, players = players, **kwargs
 		)  # registers the arguments with Configurable
 		self.player_names = player_names
+		self.players = players
 	
 	
 	def __init_subclass__(cls, **kwargs):

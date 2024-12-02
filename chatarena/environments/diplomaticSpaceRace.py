@@ -2,7 +2,7 @@ import math
 from typing import Dict, List, Union
 
 from .base import Environment, TimeStep, register_env
-from ..agent import SIGNAL_END_OF_CONVERSATION
+from ..agent import SIGNAL_END_OF_CONVERSATION, Player
 from ..message import Message, MessagePool
 
 
@@ -36,11 +36,11 @@ class DiplomaticSpaceRace(Environment):
 	
 	
 	def __init__(
-		self, player_names: List[str], startingRUs: List[int] = None, volunteerCost: int = None,
+		self, player_names: List[str], players: List[Player], startingRUs: List[int] = None, volunteerCost: int = None,
 		projectReward: int = None, neededRUs: int = None, cooperateCost: int = None, cooperateContribution: int = None,
 		**kwargs
 	):
-		super().__init__(player_names, **kwargs)
+		super().__init__(player_names, players, **kwargs)
 		
 		self.messagePool = MessagePool()
 		self.initialized = False
@@ -69,6 +69,7 @@ class DiplomaticSpaceRace(Environment):
 			cooperateContribution = DEFAULT_COOPERATE_CONTRIBUTION
 		self.cooperateContribution = cooperateContribution
 		
+		print(self.players)
 		self.reset()
 	
 	
