@@ -375,11 +375,11 @@ class DiplomaticSpaceRace(Environment):
 			self.resourceUnits[player2.name] += payoff2
 			moderatorMessage += (
 				f"For {player1.name}, this results in a net payoff of {payoff1} RUs and leaves them with "
-				f"{self.resourceUnits[player1.name]} RUs in total.\n",
+				f"{self.resourceUnits[player1.name]} RUs in total.\n"
 			)
 			moderatorMessage += (
 				f"For {player2.name}, this results in a net payoff of {payoff2} RUs and leaves them with "
-				f"{self.resourceUnits[player2.name]} RUs in total.\n",
+				f"{self.resourceUnits[player2.name]} RUs in total.\n"
 			)
 		return moderatorMessage
 	
