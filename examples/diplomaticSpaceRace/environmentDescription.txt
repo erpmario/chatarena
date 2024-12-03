@@ -25,13 +25,13 @@ Players will interact in the Construction phase by choosing Volunteer or Ignore.
 If the project succeeds, the game will proceed to the Harvesting phase. In the Harvesting phase, nations will use their resources, technology, and manpower to efficiently harvest various resources from the moon. They have agreed to pool all harvested resources together and split them evenly among all nations.
 
 The choices available to each nation in the Harvesting phase are as follows:
-Cooperate (C): Use 50 of your nation's RUs to contribute to the harvesting effort, which will result in 100 RUs being added to the shared resource pool.
+Cooperate (C): Use 60 of your nation's RUs to contribute to the harvesting effort, which will result in 100 RUs being added to the shared resource pool.
 Defect (D): Refuse to harvest resources, which costs you nothing but results in no net RU gain to the shared resource pool.
 
 After every nation has made their choice, the harvested resources will be divided up evenly between all nations, regardless of whether they chose to Cooperate or Defect.
 
 The payoff matrix for the Harvesting phase is formalized here:
-- Nations who Cooperate will receive a payoff of ((50 * [# of Cooperating nations] / 6) - 100) RUs. This payoff can be negative, so Cooperating nations may lose RUs.
-- Nations who Defect will receive a payoff of (50 * [# of Cooperating nations] / 6) RUs. This payoff can never fall below 0, so Defecting nations will never lose RUs.
+- Nations who Cooperate will receive a payoff of ((100 * [# of Cooperating nations] / 6) - 60) RUs. This payoff can be negative, so Cooperating nations may lose RUs.
+- Nations who Defect will receive a payoff of (100 * [# of Cooperating nations] / 6) RUs. This payoff can never fall below 0, so Defecting nations will never lose RUs.
 
 Players will interact in the Harvesting phase by choosing Cooperate or Defect. The game's host will decide the outcome based on the nations' choices. Only the host can determine the final outcome. Nations should not declare the results on their own.

@@ -8,7 +8,7 @@ Resource Units (RUs): 300
 
 Your task in the Construction phase is to choose to contribute 200 RUs to the project (Volunteer) or refuse to do so (Ignore). For example, you could output: "Volunteer" or "Ignore."
 
-Your task in the Harvesting phase is to choose to spend 50 RUs to harvest 100 RUs for the shared resource pool (Cooperate) or refuse to harvest and mooch off of the shared resource pool (Defect). For example, you could output: "Cooperate" or "Defect."
+Your task in the Harvesting phase is to choose to spend 60 RUs to harvest 100 RUs for the shared resource pool (Cooperate) or refuse to harvest and mooch off of the shared resource pool (Defect). For example, you could output: "Cooperate" or "Defect."
 
 The choice you make must be consistent with the game rules.
 The choice you make must be consistent with your nation's characteristics, disposition, and available RUs.
