@@ -287,7 +287,7 @@ class DiplomaticSpaceRace(Environment):
 		if self.prisonersDilemmaMode == "binary":
 			moderatorMessage = self._processBinaryPDEnd()
 		else:
-			moderatorMessage = self._processOneShotPDEnd()
+			moderatorMessage = self._processNPersonPDEnd()
 		if self.iteratedPrisonersDilemma:
 			if self.currentIteration < PD_ITERATIONS:
 				self._moderator_speak(moderatorMessage)
@@ -317,7 +317,7 @@ class DiplomaticSpaceRace(Environment):
 		return timestep
 	
 	
-	def _processOneShotPDEnd(self) -> str:
+	def _processNPersonPDEnd(self) -> str:
 		moderatorMessage = ""
 		cooperated = 0
 		for _, decision in self.decisions.items():
@@ -333,25 +333,55 @@ class DiplomaticSpaceRace(Environment):
 				decision = "D"
 			moderatorMessage += f"{nation}'s choice: {'Cooperate' if decision == 'C' else 'Defect'}\n"
 		moderatorMessage += f"\nResult: {cooperated} nations Cooperated.\n\n"
-		distributedReward = math.floor(cooperated * self.cooperateContribution / len(self.player_names))
+		distributedPayoff = math.floor(cooperated * self.cooperateContribution / len(self.player_names))
 		for nation, decision in self.decisions.items():
 			payoff = 0
 			if decision == "C":
 				payoff -= self.cooperateCost
-			payoff += distributedReward
+			payoff += distributedPayoff
 			self.resourceUnits[nation] += payoff
 			if decision == "C":
 				moderatorMessage += f"Since {nation} Cooperated, they lose {self.cooperateCost} RUs. "
 			else:
 				moderatorMessage += f"Since {nation} Defected, they do not lose any RUs. "
 			if cooperated > 0:
-				moderatorMessage += f"However, since {cooperated} nations Cooperated, {nation} gains {distributedReward} RUs. "
+				moderatorMessage += f"However, since {cooperated} nations Cooperated, {nation} gains {distributedPayoff} RUs. "
 			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
 		return moderatorMessage
 	
 	
 	def _processBinaryPDEnd(self) -> str:
-		return ""
+		moderatorMessage = ""
+		for player1, player2 in self.pairings:
+			decision1 = self.decisions[player1.name]
+			decision2 = self.decisions[player2.name]
+			moderatorMessage += (
+				f"{player1.name} chose to {'Cooperate' if decision1 == 'C' else 'Defect'}, "
+				f"and {player2.name} chose to {'Cooperate' if decision2 == 'C' else 'Defect'}.\n"
+			)
+			payoffPool = 0
+			payoff1 = 0
+			payoff2 = 0
+			if decision1 == "C":
+				payoff1 -= self.cooperateCost
+				payoffPool += self.cooperateContribution
+			if decision2 == "C":
+				payoff2 -= self.cooperateCost
+				payoffPool += self.cooperateContribution
+			distributedPayoff = math.floor(payoffPool / 2)
+			payoff1 += distributedPayoff
+			payoff2 += distributedPayoff
+			self.resourceUnits[player1.name] += payoff1
+			self.resourceUnits[player2.name] += payoff2
+			moderatorMessage += (
+				f"For {player1.name}, this results in a net payoff of {payoff1} RUs and leaves them with "
+				f"{self.resourceUnits[player1.name]} RUs in total.\n",
+			)
+			moderatorMessage += (
+				f"For {player2.name}, this results in a net payoff of {payoff2} RUs and leaves them with "
+				f"{self.resourceUnits[player2.name]} RUs in total.\n",
+			)
+		return moderatorMessage
 	
 	
 	def check_action(self, action: str, player_name: str) -> bool:
