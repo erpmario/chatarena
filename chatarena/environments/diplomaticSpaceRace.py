@@ -41,7 +41,7 @@ class DiplomaticSpaceRace(Environment):
 	prisonersDilemmaMode: str
 	messagePool: MessagePool
 	
-	gamePhase: str
+	gamePhase: str  # TODO: Create communication phase for before the actual votes are cast.
 	currentTurn: int
 	currentIteration: int
 	nextPlayerIdx: int
@@ -173,6 +173,7 @@ class DiplomaticSpaceRace(Environment):
 		self._moderator_speak("Each of you must choose to Cooperate or Defect.")
 	
 	
+	# TODO: Rework message pool and state management to make better use of limited context length in LLMs.
 	def get_observation(self, player_name = None) -> List[Message]:
 		if player_name is None:
 			return self.messagePool.get_all_messages()
