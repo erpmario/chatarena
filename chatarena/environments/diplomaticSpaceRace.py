@@ -149,20 +149,6 @@ class DiplomaticSpaceRace(Environment):
 		self._moderator_speak("Now we move into the harvesting phase.")
 		if self.iteratedPrisonersDilemma:
 			self._nextPDIteration()
-		else:
-			if self.prisonersDilemmaMode == "binary":
-				self._createPairings()
-				for player1, player2 in self.pairings:
-					self._moderator_speak(f"You are paired with {player2.name}.", visibleTo = player1.name)
-					self._moderator_speak(f"You are paired with {player1.name}.", visibleTo = player2.name)
-			for nation, resourceUnits in self.resourceUnits.items():
-				self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
-			self._moderator_speak("Each of you must choose to Cooperate or Defect.")
-	
-	
-	def _nextPDIteration(self):
-		self.currentIteration += 1
-		self._moderator_speak(f"This is iteration {self.currentIteration}.")
 		if self.prisonersDilemmaMode == "binary":
 			self._createPairings()
 			for player1, player2 in self.pairings:
@@ -173,8 +159,14 @@ class DiplomaticSpaceRace(Environment):
 		self._moderator_speak("Each of you must choose to Cooperate or Defect.")
 	
 	
+	def _nextPDIteration(self):
+		self.currentIteration += 1
+		self._moderator_speak(f"This is iteration {self.currentIteration}.")
+	
+	
 	# TODO: Rework message pool and state management to make better use of limited context length in LLMs.
 	def get_observation(self, player_name = None) -> List[Message]:
+		self._constructMinimalContext()
 		if player_name is None:
 			return self.messagePool.get_all_messages()
 		else:
@@ -243,13 +235,13 @@ class DiplomaticSpaceRace(Environment):
 			if decision == "V":
 				payoff -= self.volunteerCost
 			self.resourceUnits[nation] += payoff
-			if decision == "V":
-				moderatorMessage += f"Since {nation} Volunteered, they lose {self.volunteerCost} RUs. "
-			else:
-				moderatorMessage += f"Since {nation} Ignored, they do not lose any RUs. "
-			if projectSucceeded:
-				moderatorMessage += f"However, since the project succeeded, they gain {self.projectReward} RUs. "
-			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
+			# if decision == "V":
+			# 	moderatorMessage += f"Since {nation} Volunteered, they lose {self.volunteerCost} RUs. "
+			# else:
+			# 	moderatorMessage += f"Since {nation} Ignored, they do not lose any RUs. "
+			# if projectSucceeded:
+			# 	moderatorMessage += f"However, since the project succeeded, they gain {self.projectReward} RUs. "
+			moderatorMessage += f"{nation} receives a net payoff of {payoff} RUs and is left with {self.resourceUnits[nation]} RUs in total.\n"
 		if projectSucceeded:
 			moderatorMessage += "\nSince the project succeeded, we now move into the second phase of the game."
 		else:
@@ -290,32 +282,56 @@ class DiplomaticSpaceRace(Environment):
 		else:
 			moderatorMessage = self._processNPersonPDEnd()
 		if self.iteratedPrisonersDilemma:
-			if self.currentIteration < PD_ITERATIONS:
-				self._moderator_speak(moderatorMessage)
-				self._nextPDIteration()
-				timestep = TimeStep(
-					observation = self.get_observation(),
-					reward = self.resourceUnits,
-					terminal = False
-				)
-			else:
-				moderatorMessage += "\nSince this was the last iteration, the game is over."
-				self._moderator_speak(moderatorMessage)
-				timestep = TimeStep(
-					observation = self.get_observation(),
-					reward = self.resourceUnits,
-					terminal = True
-				)
+			timestep = self._processIteratedPDEnd(moderatorMessage)
 		else:
-			moderatorMessage += "\nThe game is over."
-			self._moderator_speak(moderatorMessage)
-			timestep = TimeStep(
-				observation = self.get_observation(),
-				reward = self.resourceUnits,
-				terminal = True
-			)
+			timestep = self._processOneShotPDEnd(moderatorMessage)
 		self.currentTurn += 1
 		return timestep
+	
+	
+	def _processBinaryPDEnd(self) -> str:
+		moderatorMessage = ""
+		for player1, player2 in self.pairings:
+			# If a nation doesn't have enough RUs to Cooperate, they will Defect by default.
+			if self.resourceUnits[player1.name] < self.cooperateCost:
+				self._moderator_speak(
+					f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = player1.name
+				)
+				self.decisions[player1.name] = "D"
+			if self.resourceUnits[player2.name] < self.cooperateCost:
+				self._moderator_speak(
+					f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = player2.name
+				)
+				self.decisions[player2.name] = "D"
+			decision1 = self.decisions[player1.name]
+			decision2 = self.decisions[player2.name]
+			moderatorMessage += (
+				f"{player1.name} chose to {'Cooperate' if decision1 == 'C' else 'Defect'}, "
+				f"and {player2.name} chose to {'Cooperate' if decision2 == 'C' else 'Defect'}.\n"
+			)
+			payoffPool = 0
+			payoff1 = 0
+			payoff2 = 0
+			if decision1 == "C":
+				payoff1 -= self.cooperateCost
+				payoffPool += self.cooperateContribution
+			if decision2 == "C":
+				payoff2 -= self.cooperateCost
+				payoffPool += self.cooperateContribution
+			distributedPayoff = math.floor(payoffPool / 2)
+			payoff1 += distributedPayoff
+			payoff2 += distributedPayoff
+			self.resourceUnits[player1.name] += payoff1
+			self.resourceUnits[player2.name] += payoff2
+			moderatorMessage += (
+				f"{player1.name} receives a net payoff of {payoff1} RUs and is left with "
+				f"{self.resourceUnits[player1.name]} RUs in total.\n"
+			)
+			moderatorMessage += (
+				f"{player2.name} receives a net payoff of {payoff2} RUs and is left with "
+				f"{self.resourceUnits[player2.name]} RUs in total.\n"
+			)
+		return moderatorMessage
 	
 	
 	def _processNPersonPDEnd(self) -> str:
@@ -341,48 +357,45 @@ class DiplomaticSpaceRace(Environment):
 				payoff -= self.cooperateCost
 			payoff += distributedPayoff
 			self.resourceUnits[nation] += payoff
-			if decision == "C":
-				moderatorMessage += f"Since {nation} Cooperated, they lose {self.cooperateCost} RUs. "
-			else:
-				moderatorMessage += f"Since {nation} Defected, they do not lose any RUs. "
-			if cooperated > 0:
-				moderatorMessage += f"However, since {cooperated} nations Cooperated, {nation} gains {distributedPayoff} RUs. "
-			moderatorMessage += f"This results in a net payoff of {payoff} RUs and leaves {nation} with {self.resourceUnits[nation]} RUs in total.\n"
+			# if decision == "C":
+			# 	moderatorMessage += f"Since {nation} Cooperated, they lose {self.cooperateCost} RUs. "
+			# else:
+			# 	moderatorMessage += f"Since {nation} Defected, they do not lose any RUs. "
+			# if cooperated > 0:
+			# 	moderatorMessage += f"However, since {cooperated} nations Cooperated, {nation} gains {distributedPayoff} RUs. "
+			moderatorMessage += f"{nation} receives a net payoff of {payoff} RUs is left with {self.resourceUnits[nation]} RUs in total.\n"
 		return moderatorMessage
 	
 	
-	def _processBinaryPDEnd(self) -> str:
-		moderatorMessage = ""
-		for player1, player2 in self.pairings:
-			decision1 = self.decisions[player1.name]
-			decision2 = self.decisions[player2.name]
-			moderatorMessage += (
-				f"{player1.name} chose to {'Cooperate' if decision1 == 'C' else 'Defect'}, "
-				f"and {player2.name} chose to {'Cooperate' if decision2 == 'C' else 'Defect'}.\n"
+	def _processIteratedPDEnd(self, moderatorMessage) -> TimeStep:
+		if self.currentIteration < PD_ITERATIONS:
+			self._moderator_speak(moderatorMessage)
+			self._nextPDIteration()
+			timestep = TimeStep(
+				observation = self.get_observation(),
+				reward = self.resourceUnits,
+				terminal = False
 			)
-			payoffPool = 0
-			payoff1 = 0
-			payoff2 = 0
-			if decision1 == "C":
-				payoff1 -= self.cooperateCost
-				payoffPool += self.cooperateContribution
-			if decision2 == "C":
-				payoff2 -= self.cooperateCost
-				payoffPool += self.cooperateContribution
-			distributedPayoff = math.floor(payoffPool / 2)
-			payoff1 += distributedPayoff
-			payoff2 += distributedPayoff
-			self.resourceUnits[player1.name] += payoff1
-			self.resourceUnits[player2.name] += payoff2
-			moderatorMessage += (
-				f"For {player1.name}, this results in a net payoff of {payoff1} RUs and leaves them with "
-				f"{self.resourceUnits[player1.name]} RUs in total.\n"
+		else:
+			moderatorMessage += "\nSince this was the last iteration, the game is over."
+			self._moderator_speak(moderatorMessage)
+			timestep = TimeStep(
+				observation = self.get_observation(),
+				reward = self.resourceUnits,
+				terminal = True
 			)
-			moderatorMessage += (
-				f"For {player2.name}, this results in a net payoff of {payoff2} RUs and leaves them with "
-				f"{self.resourceUnits[player2.name]} RUs in total.\n"
-			)
-		return moderatorMessage
+		return timestep
+	
+	
+	def _processOneShotPDEnd(self, moderatorMessage) -> TimeStep:
+		moderatorMessage += "\nThe game is over."
+		self._moderator_speak(moderatorMessage)
+		timestep = TimeStep(
+			observation = self.get_observation(),
+			reward = self.resourceUnits,
+			terminal = True
+		)
+		return timestep
 	
 	
 	def check_action(self, action: str, player_name: str) -> bool:
@@ -407,3 +420,10 @@ class DiplomaticSpaceRace(Environment):
 			visible_to = visibleTo,
 		)
 		self.messagePool.append_message(message)
+	
+	
+	def _constructMinimalContext(self):
+		"""Using the message history, construct an observational context that uses a minimal amount of tokens while still providing the information needed for an agent to make a decision."""
+		print("<Start Minimal Context>")
+		print(self.messagePool)
+		print("<End Minimal Context>")
