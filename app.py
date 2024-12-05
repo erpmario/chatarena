@@ -35,7 +35,7 @@ DEBUG = True
 DEFAULT_BACKEND = "transformers:text-generation"
 DEFAULT_ENV = "conversation"
 MAX_NUM_PLAYERS = 6
-DEFAULT_NUM_PLAYERS = 2
+DEFAULT_NUM_PLAYERS = 6
 
 
 def load_examples():

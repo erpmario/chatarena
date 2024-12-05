@@ -1,9 +1,9 @@
 import math
 import random
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Tuple, Union
 
 from .base import Environment, TimeStep, register_env
-from ..agent import SIGNAL_END_OF_CONVERSATION, Player
+from ..agent import Player, SIGNAL_END_OF_CONVERSATION
 from ..backends.strategic import StrategicBase
 from ..message import Message, MessagePool
 
@@ -51,6 +51,7 @@ class DiplomaticSpaceRace(Environment):
 	initialized: bool
 	
 	pairings: List[Tuple[Player, Player]]
+	pairingsDict: Dict[str, str]
 	
 	
 	def __init__(
@@ -116,6 +117,7 @@ class DiplomaticSpaceRace(Environment):
 		self.currentDecisions = {}
 		self.decisionHistory = {player: [] for player in self.player_names}
 		self.pairings = []
+		self.pairingsDict = {}
 		for i in range(len(self.players)):
 			ithPlayer = self.players[i]
 			self.resourceUnits[self.player_names[i]] = self.startingRUs[i]
@@ -137,10 +139,12 @@ class DiplomaticSpaceRace(Environment):
 		self.pairings = []
 		players = self.players.copy()
 		while len(players) > 1:
-			player1 = random.choice(players)
+			player1: Player = random.choice(players)
 			players.remove(player1)
-			player2 = random.choice(players)
+			player2: Player = random.choice(players)
 			players.remove(player2)
+			self.pairingsDict[player1.name] = player2.name
+			self.pairingsDict[player2.name] = player1.name
 			self.pairings.append((player1, player2))
 	
 	
@@ -153,6 +157,20 @@ class DiplomaticSpaceRace(Environment):
 		self._moderator_speak("Now we move into the harvesting phase.")
 		if self.iteratedPrisonersDilemma:
 			self._nextPDIteration()
+		else:
+			if self.prisonersDilemmaMode == "binary":
+				self._createPairings()
+				for player1, player2 in self.pairings:
+					self._moderator_speak(f"You are paired with {player2.name}.", visibleTo = player1.name)
+					self._moderator_speak(f"You are paired with {player1.name}.", visibleTo = player2.name)
+			for nation, resourceUnits in self.resourceUnits.items():
+				self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
+			self._moderator_speak("Each of you must choose to Cooperate or Defect.")
+	
+	
+	def _nextPDIteration(self):
+		self.currentIteration += 1
+		self._moderator_speak(f"This is iteration {self.currentIteration}.")
 		if self.prisonersDilemmaMode == "binary":
 			self._createPairings()
 			for player1, player2 in self.pairings:
@@ -163,20 +181,11 @@ class DiplomaticSpaceRace(Environment):
 		self._moderator_speak("Each of you must choose to Cooperate or Defect.")
 	
 	
-	def _nextPDIteration(self):
-		self.currentIteration += 1
-		self._moderator_speak(f"This is iteration {self.currentIteration}.")
-	
-	
-	# TODO: Rework message pool and state management to make better use of limited context length in LLMs.
 	def get_observation(self, player_name = None) -> List[Message]:
 		if player_name is None:
 			return self.messagePool.get_all_messages()
 		else:
 			return self._constructObservation(player_name)
-		# return self.messagePool.get_visible_messages(
-		# 	player_name, turn = self.currentTurn
-		# )
 	
 	
 	def _constructObservation(self, player_name: str) -> List[Message]:
@@ -191,7 +200,9 @@ class DiplomaticSpaceRace(Environment):
 		elif self.gamePhase == "prisoners-dilemma":
 			content = "It is currently the Harvesting phase.\n"
 			if self.iteratedPrisonersDilemma:
-				content = f"This is iteration {self.currentIteration}.\n"
+				content += f"This is iteration {self.currentIteration}.\n"
+			if self.prisonersDilemmaMode == "binary":
+				content += f"You are paired with {self.pairingsDict[player_name]}.\n"
 			content += "You must choose to Cooperate or Defect."
 		observation.append(Message(agent_name = "Moderator", content = content, turn = self.currentTurn))
 		return observation
@@ -247,7 +258,9 @@ class DiplomaticSpaceRace(Environment):
 		for nation, decision in self.currentDecisions.items():
 			if decision == "V":
 				contributedRUs += self.volunteerCost
-			self.decisionHistory[nation].append(decision)  # No need for max length check for now as Snowdrift is only a one-shot.
+			self.decisionHistory[nation].append(
+				decision
+			)  # No need for max length check for now as Snowdrift is only a one-shot.
 		projectSucceeded = contributedRUs >= self.neededRUs
 		moderatorMessage = ""
 		for nation, decision in self.currentDecisions.items():
