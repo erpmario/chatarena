@@ -425,5 +425,5 @@ class DiplomaticSpaceRace(Environment):
 	def _constructMinimalContext(self):
 		"""Using the message history, construct an observational context that uses a minimal amount of tokens while still providing the information needed for an agent to make a decision."""
 		print("<Start Minimal Context>")
-		print(self.messagePool)
+		self.messagePool.print()
 		print("<End Minimal Context>")

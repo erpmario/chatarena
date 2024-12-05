@@ -34,8 +34,6 @@ with suppress_stdout_stderr():
 		# 	ConversationalPipeline,
 		# )
 		from transformers.pipelines.text_generation import TextGenerationPipeline
-		
-		login("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")
 	except ImportError:
 		is_transformers_available = False
 	else:
