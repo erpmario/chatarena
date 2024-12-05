@@ -22,6 +22,8 @@ DEFAULT_ITERATED_PD = True
 DEFAULT_PD_MODE = "binary"
 PD_ITERATIONS = 3
 
+MAX_DECISION_HISTORY = 5
+
 
 @register_env
 class DiplomaticSpaceRace(Environment):
@@ -29,7 +31,8 @@ class DiplomaticSpaceRace(Environment):
 	
 	startingRUs: List[int]
 	resourceUnits: Dict[str, int]
-	decisions: Dict[str, str]
+	currentDecisions: Dict[str, str]
+	decisionHistory: Dict[str, List[str]]
 	volunteerCost: int
 	projectReward: int
 	neededRUs: int
@@ -110,12 +113,13 @@ class DiplomaticSpaceRace(Environment):
 		self.nextPlayerIdx = 0
 		self.messagePool.reset()
 		self.resourceUnits = {}
-		self.decisions = {}
+		self.currentDecisions = {}
+		self.decisionHistory = {player: [] for player in self.player_names}
 		self.pairings = []
 		for i in range(len(self.players)):
 			ithPlayer = self.players[i]
 			self.resourceUnits[self.player_names[i]] = self.startingRUs[i]
-			self.decisions[self.player_names[i]] = ""
+			self.currentDecisions[self.player_names[i]] = ""
 			if isinstance(ithPlayer.backend, StrategicBase):
 				ithPlayer.backend.game_phase = "snowdrift"
 		self.gamePhase = "snowdrift"
@@ -166,13 +170,31 @@ class DiplomaticSpaceRace(Environment):
 	
 	# TODO: Rework message pool and state management to make better use of limited context length in LLMs.
 	def get_observation(self, player_name = None) -> List[Message]:
-		self._constructMinimalContext()
 		if player_name is None:
 			return self.messagePool.get_all_messages()
 		else:
-			return self.messagePool.get_visible_messages(
-				player_name, turn = self.currentTurn
-			)
+			return self._constructObservation(player_name)
+		# return self.messagePool.get_visible_messages(
+		# 	player_name, turn = self.currentTurn
+		# )
+	
+	
+	def _constructObservation(self, player_name: str) -> List[Message]:
+		observation = []
+		content = "Decision History:\n"
+		for nation, decisions in self.decisionHistory.items():
+			content += f"{nation} ({self.resourceUnits[nation]} RUs): {' '.join(decisions)}\n"
+		content += f"\nYour current RUs: {self.resourceUnits[player_name]}\n"
+		observation.append(Message(agent_name = "Moderator", content = content, turn = self.currentTurn))
+		if self.gamePhase == "snowdrift":
+			content = "It is currently the Construction phase.\nYou must choose to Volunteer or Ignore."
+		elif self.gamePhase == "prisoners-dilemma":
+			content = "It is currently the Harvesting phase.\n"
+			if self.iteratedPrisonersDilemma:
+				content = f"This is iteration {self.currentIteration}.\n"
+			content += "You must choose to Cooperate or Defect."
+		observation.append(Message(agent_name = "Moderator", content = content, turn = self.currentTurn))
+		return observation
 	
 	
 	def get_next_player(self) -> str:
@@ -205,7 +227,7 @@ class DiplomaticSpaceRace(Environment):
 	def _processSnowdriftStep(self, action, player_name):
 		message = Message(agent_name = player_name, content = action, turn = self.currentTurn)
 		self.messagePool.append_message(message)
-		self.decisions[player_name] = "V" if "Volunteer" in action else "I" if "Ignore" in action else ""
+		self.currentDecisions[player_name] = "V" if "Volunteer" in action else "I" if "Ignore" in action else ""
 		self.currentTurn += 1
 		if self.nextPlayerIdx < len(self.player_names) - 1:
 			self.nextPlayerIdx += 1
@@ -222,15 +244,16 @@ class DiplomaticSpaceRace(Environment):
 	def _processSnowdriftEnd(self):
 		self.nextPlayerIdx = 0
 		contributedRUs = 0
-		for _, decision in self.decisions.items():
+		for nation, decision in self.currentDecisions.items():
 			if decision == "V":
 				contributedRUs += self.volunteerCost
+			self.decisionHistory[nation].append(decision)  # No need for max length check for now as Snowdrift is only a one-shot.
 		projectSucceeded = contributedRUs >= self.neededRUs
 		moderatorMessage = ""
-		for nation, decision in self.decisions.items():
+		for nation, decision in self.currentDecisions.items():
 			moderatorMessage += f"{nation}'s choice: {'Volunteer' if decision == 'V' else 'Ignore'}\n"
 		moderatorMessage += f"\nResult: The project {'succeeds' if projectSucceeded else 'fails'}!\n\n"
-		for nation, decision in self.decisions.items():
+		for nation, decision in self.currentDecisions.items():
 			payoff = self.projectReward if projectSucceeded else 0
 			if decision == "V":
 				payoff -= self.volunteerCost
@@ -261,7 +284,7 @@ class DiplomaticSpaceRace(Environment):
 	def _processPDStep(self, action, player_name):
 		message = Message(agent_name = player_name, content = action, turn = self.currentTurn)
 		self.messagePool.append_message(message)
-		self.decisions[player_name] = "C" if "Cooperate" in action else "D" if "Defect" in action else ""
+		self.currentDecisions[player_name] = "C" if "Cooperate" in action else "D" if "Defect" in action else ""
 		self.currentTurn += 1
 		if self.nextPlayerIdx < len(self.player_names) - 1:
 			self.nextPlayerIdx += 1
@@ -277,6 +300,10 @@ class DiplomaticSpaceRace(Environment):
 	
 	def _processPDEnd(self):
 		self.nextPlayerIdx = 0
+		for nation, decision in self.currentDecisions.items():
+			self.decisionHistory[nation].append(decision)
+			if len(self.decisionHistory[nation]) > MAX_DECISION_HISTORY:
+				self.decisionHistory[nation].pop(0)
 		if self.prisonersDilemmaMode == "binary":
 			moderatorMessage = self._processBinaryPDEnd()
 		else:
@@ -297,14 +324,14 @@ class DiplomaticSpaceRace(Environment):
 				self._moderator_speak(
 					f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = player1.name
 				)
-				self.decisions[player1.name] = "D"
+				self.currentDecisions[player1.name] = "D"
 			if self.resourceUnits[player2.name] < self.cooperateCost:
 				self._moderator_speak(
 					f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = player2.name
 				)
-				self.decisions[player2.name] = "D"
-			decision1 = self.decisions[player1.name]
-			decision2 = self.decisions[player2.name]
+				self.currentDecisions[player2.name] = "D"
+			decision1 = self.currentDecisions[player1.name]
+			decision2 = self.currentDecisions[player2.name]
 			moderatorMessage += (
 				f"{player1.name} chose to {'Cooperate' if decision1 == 'C' else 'Defect'}, "
 				f"and {player2.name} chose to {'Cooperate' if decision2 == 'C' else 'Defect'}.\n"
@@ -337,21 +364,21 @@ class DiplomaticSpaceRace(Environment):
 	def _processNPersonPDEnd(self) -> str:
 		moderatorMessage = ""
 		cooperated = 0
-		for _, decision in self.decisions.items():
+		for _, decision in self.currentDecisions.items():
 			if decision == "C":
 				cooperated += 1
-		for nation, decision in self.decisions.items():
+		for nation, decision in self.currentDecisions.items():
 			# If a nation doesn't have enough RUs to Cooperate, they will Defect by default.
 			if self.resourceUnits[nation] < self.cooperateCost:
 				self._moderator_speak(
 					f"You don't have enough RUs to Cooperate, so you must Defect.", visibleTo = nation
 				)
-				self.decisions[nation] = "D"
+				self.currentDecisions[nation] = "D"
 				decision = "D"
 			moderatorMessage += f"{nation}'s choice: {'Cooperate' if decision == 'C' else 'Defect'}\n"
 		moderatorMessage += f"\nResult: {cooperated} nations Cooperated.\n\n"
 		distributedPayoff = math.floor(cooperated * self.cooperateContribution / len(self.player_names))
-		for nation, decision in self.decisions.items():
+		for nation, decision in self.currentDecisions.items():
 			payoff = 0
 			if decision == "C":
 				payoff -= self.cooperateCost
@@ -420,10 +447,3 @@ class DiplomaticSpaceRace(Environment):
 			visible_to = visibleTo,
 		)
 		self.messagePool.append_message(message)
-	
-	
-	def _constructMinimalContext(self):
-		"""Using the message history, construct an observational context that uses a minimal amount of tokens while still providing the information needed for an agent to make a decision."""
-		print("<Start Minimal Context>")
-		self.messagePool.print()
-		print("<End Minimal Context>")
