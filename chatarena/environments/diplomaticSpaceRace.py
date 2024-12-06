@@ -123,7 +123,7 @@ class DiplomaticSpaceRace(Environment):
 			self.resourceUnits[self.player_names[i]] = self.startingRUs[i]
 			self.currentDecisions[self.player_names[i]] = ""
 			if isinstance(ithPlayer.backend, StrategicBase):
-				ithPlayer.backend.game_phase = "snowdrift"
+				ithPlayer.backend.update_state(game_phase = "snowdrift", player_names = self.player_names, resource_units = self.resourceUnits)
 		self.gamePhase = "snowdrift"
 		
 		self._moderator_speak("Now the game starts! Each of you must choose to Volunteer or Ignore.")
@@ -146,6 +146,9 @@ class DiplomaticSpaceRace(Environment):
 			self.pairingsDict[player1.name] = player2.name
 			self.pairingsDict[player2.name] = player1.name
 			self.pairings.append((player1, player2))
+		for player in self.players:
+			if isinstance(player.backend, StrategicBase):
+				player.backend.update_state(paired_with = self.pairingsDict[player.name])
 	
 	
 	def initPD(self):
@@ -153,7 +156,7 @@ class DiplomaticSpaceRace(Environment):
 		self.currentIteration = 0
 		for player in self.players:
 			if isinstance(player.backend, StrategicBase):
-				player.backend.game_phase = "prisoners-dilemma"
+				player.backend.update_state(game_phase = "prisoners-dilemma")
 		self._moderator_speak("Now we move into the harvesting phase.")
 		if self.iteratedPrisonersDilemma:
 			self._nextPDIteration()
@@ -166,6 +169,11 @@ class DiplomaticSpaceRace(Environment):
 			for nation, resourceUnits in self.resourceUnits.items():
 				self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
 			self._moderator_speak("Each of you must choose to Cooperate or Defect.")
+			for player in self.players:
+				if isinstance(player.backend, StrategicBase):
+					player.backend.update_state(
+						decision_history = self.decisionHistory, resource_units = self.resourceUnits
+					)
 	
 	
 	def _nextPDIteration(self):
@@ -179,6 +187,11 @@ class DiplomaticSpaceRace(Environment):
 		for nation, resourceUnits in self.resourceUnits.items():
 			self._moderator_speak(f"You have {resourceUnits} RUs.", visibleTo = nation)
 		self._moderator_speak("Each of you must choose to Cooperate or Defect.")
+		for player in self.players:
+			if isinstance(player.backend, StrategicBase):
+				player.backend.update_state(
+					decision_history = self.decisionHistory, resource_units = self.resourceUnits
+				)
 	
 	
 	def get_observation(self, player_name = None) -> List[Message]:
@@ -323,6 +336,10 @@ class DiplomaticSpaceRace(Environment):
 			moderatorMessage = self._processNPersonPDEnd()
 		if self.iteratedPrisonersDilemma:
 			timestep = self._processIteratedPDEnd(moderatorMessage)
+			for player in self.players:
+				if isinstance(player.backend, StrategicBase):
+					player.backend.update_state(decision_history = self.decisionHistory, resource_units = self.resourceUnits)
+					player.backend.post_process(player.name)
 		else:
 			timestep = self._processOneShotPDEnd(moderatorMessage)
 		self.currentTurn += 1
